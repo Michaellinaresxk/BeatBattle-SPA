@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@400;500;600;700&display=swap');
+
+/* Tailwind base */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import './UI//styles/Navbar.css';
+@import './UI//styles/HomeScreen.css';
+@import './UI//styles/LandingPage.css';
+
+/* Estilos base para toda la aplicación */
+body {
+  font-family: 'Montserrat', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #190933;
+  color: white;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Archivo Black', sans-serif;
+}
+

@@ -1,0 +1,262 @@
+/* src/pages/LandingPage.css */
+
+/* Estilos generales */
+.landing-page {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: white;
+  overflow-x: hidden;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #4CC9F0, #B142F5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Sección About */
+.about-section {
+  background: linear-gradient(to bottom, #1a1155 0%, #1f3b96 100%);
+  padding: 8rem 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.about-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+  padding: 0 5%;
+}
+
+.about-content {
+  flex: 1;
+}
+
+.about-content h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.about-content p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.about-image {
+  flex: 1;
+  position: relative;
+}
+
+.about-image .image-glow {
+  position: absolute;
+  inset: -20px;
+  border-radius: 16px;
+  background: linear-gradient(to right, #8e42e6, #4cc9f0);
+  opacity: 0.3;
+  filter: blur(20px);
+  z-index: -1;
+}
+
+.about-image img {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  display: block;
+}
+
+/* Sección Play/Download */
+.play-section {
+  background: linear-gradient(to bottom, #1f3b96 0%, #1a1155 100%);
+  padding: 8rem 0;
+  text-align: center;
+  width: 100%;
+}
+
+.play-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 5%;
+}
+
+.play-section h2 {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.play-section p {
+  font-size: 1.2rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
+
+.download-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.download-button {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.download-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  background: rgba(142, 66, 230, 0.1);
+  border-color: rgba(142, 66, 230, 0.5);
+}
+
+.download-icon {
+  margin-right: 1rem;
+}
+
+.download-button div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.download-button span {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.download-button strong {
+  font-size: 1.2rem;
+}
+
+/* Footer */
+.footer {
+  background-color: #0c0a20;
+  padding: 4rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+}
+
+.footer-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 5%;
+}
+
+.footer-logo {
+  max-width: 300px;
+}
+
+.footer-logo p {
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.footer-links {
+  display: flex;
+  gap: 4rem;
+}
+
+.footer-column h3 {
+  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+  color: white;
+}
+
+.footer-column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-column li {
+  margin-bottom: 0.8rem;
+}
+
+.footer-column a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-column a:hover {
+  color: white;
+}
+
+.social-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.social-icon:hover {
+  transform: translateY(-3px);
+  background: linear-gradient(to right, #8e42e6, #4cc9f0);
+}
+
+/* Media queries para responsive */
+@media (max-width: 768px) {
+  .about-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 3rem;
+  }
+  
+  .footer-container {
+    flex-direction: column;
+    gap: 3rem;
+  }
+  
+  .footer-logo {
+    max-width: 100%;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .footer-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+  }
+  
+  .footer-column {
+    text-align: center;
+    width: 100%;
+  }
+}
