@@ -10,3 +10,28 @@ export interface PlayerAnswer {
   correct: boolean;
   points: number;
 }
+
+export interface Question {
+  id: string;
+  question: string;
+  order: number;
+  totalQuestions: number;
+  audioUrl?: string;
+  correctOptionId?: string;
+  image?: string;
+}
+
+export interface Option {
+  id: string;
+  text: string;
+}
+
+export interface GameResults {
+  [playerId: string]: {
+    score: number;
+    correctAnswers: number;
+    wrongAnswers: number;
+  };
+}
+
+export type GameStatus = 'setup' | 'waiting' | 'playing' | 'ended';
