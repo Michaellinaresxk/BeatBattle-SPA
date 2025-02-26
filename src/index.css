@@ -8,8 +8,8 @@
 @import './UI//styles/Navbar.css';
 @import './UI//styles/HomeScreen.css';
 @import './UI//styles/LandingPage.css';
+@import './UI//styles/QuizDisplay.css';
 
-/* Estilos base para toda la aplicación */
 body {
   font-family: 'Montserrat', sans-serif;
   margin: 0;

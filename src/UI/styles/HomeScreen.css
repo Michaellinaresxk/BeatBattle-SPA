@@ -1,6 +1,3 @@
-/* src/components/HeroScreen.css */
-
-/* Estilos generales */
 .hero-screen {
   position: relative;
   min-height: 100vh;
@@ -13,7 +10,6 @@
   flex-direction: column;
 }
 
-/* Contenedor principal */
 .hero-content {
   position: relative;
   width: 100%;
@@ -26,7 +22,7 @@
   z-index: 2;
 }
 
-/* Partículas animadas del fondo */
+/* Animated background particles */
 .particles-container {
   position: absolute;
   top: 0;
@@ -60,7 +56,7 @@
   }
 }
 
-/* Sección de texto */
+
 .hero-text {
   flex: 1;
   padding-right: 2rem;
@@ -92,7 +88,6 @@
   max-width: 90%;
 }
 
-/* Botón CTA */
 .cta-button {
   padding: 1rem 2rem;
   font-size: 1rem;
@@ -111,7 +106,6 @@
   box-shadow: 0 7px 25px rgba(142, 66, 230, 0.6);
 }
 
-/* Contenedor de imagen */
 .hero-image-container {
   position: relative;
   flex: 1;
@@ -137,7 +131,6 @@
   object-fit: cover;
 }
 
-/* Botón de play */
 .play-button-container {
   position: absolute;
   top: 50%;
@@ -163,7 +156,6 @@
   box-shadow: 0 8px 30px rgba(142, 66, 230, 0.6);
 }
 
-/* Sección de características */
 .features-section {
   position: relative;
   padding: 5rem 0;
@@ -226,11 +218,11 @@
   line-height: 1.6;
 }
 
-/* Media queries para responsive */
+
 @media (max-width: 768px) {
   .hero-content {
     flex-direction: column;
-    padding: 100px 5% 2rem; /* Añadir padding-top para evitar que se solape con el navbar */
+    padding: 100px 5% 2rem;
     gap: 3rem;
   }
 
@@ -258,7 +250,7 @@
   }
 }
 
-/* Animaciones adicionales */
+
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(142, 66, 230, 0.7);
