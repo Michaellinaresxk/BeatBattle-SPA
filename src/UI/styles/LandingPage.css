@@ -1,6 +1,4 @@
-/* src/pages/LandingPage.css */
 
-/* Estilos generales */
 .landing-page {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: white;
@@ -18,7 +16,6 @@
   color: transparent;
 }
 
-/* Sección About */
 .about-section {
   background: linear-gradient(to bottom, #1a1155 0%, #1f3b96 100%);
   padding: 8rem 0;
@@ -76,7 +73,7 @@
   display: block;
 }
 
-/* Sección Play/Download */
+/* Play/Download section */
 .play-section {
   background: linear-gradient(to bottom, #1f3b96 0%, #1a1155 100%);
   padding: 8rem 0;
@@ -229,7 +226,7 @@
   background: linear-gradient(to right, #8e42e6, #4cc9f0);
 }
 
-/* Media queries para responsive */
+
 @media (max-width: 768px) {
   .about-container {
     flex-direction: column;

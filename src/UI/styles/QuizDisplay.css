@@ -1,4 +1,3 @@
-/* Estilos generales */
 .quiz-display {
   font-family: 'Roboto', sans-serif;
   background: linear-gradient(135deg, #0f0f19 0%, #20203a 100%);
@@ -23,7 +22,7 @@
   overflow: hidden;
 }
 
-button {
+.quizButton {
   background: linear-gradient(135deg, #5f25ff 0%, #4a6bf5 100%);
   color: white;
   border: none;
@@ -36,16 +35,16 @@ button {
   box-shadow: 0 5px 15px rgba(95, 37, 255, 0.3);
 }
 
-button:hover {
+.quizButton:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(95, 37, 255, 0.5);
 }
 
-button:active {
+.quizButton:active {
   transform: translateY(1px);
 }
 
-h1 {
+.title {
   text-align: center;
   font-size: 36px;
   margin-bottom: 30px;
@@ -53,13 +52,13 @@ h1 {
   text-shadow: 0 0 10px rgba(95, 37, 255, 0.7);
 }
 
-h2 {
+.subtitle {
   font-size: 24px;
   margin-bottom: 20px;
   color: #eee;
 }
 
-/* Pantalla de setup */
+
 .setup-screen {
   text-align: center;
   padding: 40px 0;
@@ -76,7 +75,7 @@ h2 {
   padding: 16px 40px;
 }
 
-/* Sala de espera */
+
 .waiting-room {
   display: flex;
   flex-direction: column;
@@ -150,7 +149,7 @@ h2 {
   margin-top: 20px;
 }
 
-/* Pantalla de juego */
+
 .game-screen {
   display: flex;
   flex-direction: column;
@@ -322,7 +321,7 @@ h2 {
   font-weight: bold;
 }
 
-/* Pantalla de resultados finales */
+
 .finished-screen {
   text-align: center;
 }

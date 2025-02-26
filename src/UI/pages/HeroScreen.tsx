@@ -1,33 +1,32 @@
-// src/components/HeroScreen.jsx
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 const HeroScreen = () => {
   const navigate = useNavigate();
-  // Crear partículas dinámicamente para el fondo
+  // Create particles dynamically for the background
   useEffect(() => {
     const particlesContainer = document.querySelector('.particles-container');
 
-    // Limpiar partículas existentes
+    // Clean existing particles
     if (particlesContainer) {
       particlesContainer.innerHTML = '';
 
-      // Crear nuevas partículas
+      // Create new particles
       for (let i = 0; i < 30; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
 
-        // Posición aleatoria
+        // Random position
         particle.style.top = `${Math.random() * 100}%`;
         particle.style.left = `${Math.random() * 100}%`;
 
-        // Tamaño aleatorio
+        // Random size
         const size = Math.random() * 8 + 2;
         particle.style.width = `${size}px`;
         particle.style.height = `${size}px`;
 
-        // Animación aleatoria
+        // Random animation
         particle.style.animationDuration = `${Math.random() * 10 + 5}s`;
         particle.style.animationDelay = `${Math.random() * 5}s`;
 
@@ -37,17 +36,17 @@ const HeroScreen = () => {
   }, []);
 
   const handlePlayNow = () => {
-    navigate('/quiz'); // Redirecciona a la ruta donde está montado QuizDisplay
+    navigate('/quiz');
   };
 
   return (
     <div className='hero-screen'>
-      {/* Fondo con partículas */}
+      {/* Background with particles */}
       <div className='particles-container'></div>
 
-      {/* Contenido principal */}
+      {/* Main content */}
       <div className='hero-content'>
-        {/* Columna de texto */}
+        {/* Text column */}
         <motion.div
           className='hero-text'
           initial={{ opacity: 0, x: -50 }}
@@ -68,9 +67,8 @@ const HeroScreen = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            Pon a prueba tus conocimientos musicales en este desafiante juego.
-            ¡Compite con amigos y demuestra quién es el verdadero maestro de la
-            música!
+            Test your musical knowledge in this challenging game. Compete with
+            friends and prove who is the true master of music! master of music!
           </motion.p>
 
           <motion.div
@@ -79,12 +77,12 @@ const HeroScreen = () => {
             transition={{ duration: 0.8, delay: 0.6 }}
           >
             <button className='cta-button' onClick={handlePlayNow}>
-              Jugar Ahora
+              Play Now
             </button>
           </motion.div>
         </motion.div>
 
-        {/* Imagen del juego */}
+        {/* Game image */}
         <motion.div
           className='hero-image-container'
           initial={{ opacity: 0, scale: 0.9 }}
@@ -97,8 +95,6 @@ const HeroScreen = () => {
             alt='Music Quiz Game'
             className='hero-image'
           />
-
-          {/* Botón de play sobre la imagen */}
           <motion.div
             className='play-button-container'
             whileHover={{ scale: 1.1 }}
@@ -113,7 +109,7 @@ const HeroScreen = () => {
         </motion.div>
       </div>
 
-      {/* Cards de características */}
+      {/* Feature cards */}
       <div className='features-section'>
         <motion.h2
           className='features-title'
@@ -128,18 +124,18 @@ const HeroScreen = () => {
           {[
             {
               icon: '🎵',
-              title: 'Música Ilimitada',
-              desc: 'Miles de canciones de todos los géneros y épocas.',
+              title: 'Unlimited Music',
+              desc: 'Thousands of songs from all genres and eras.',
             },
             {
               icon: '👥',
-              title: 'Multijugador',
-              desc: 'Compite con amigos y demuestra tus conocimientos.',
+              title: 'Multiplayer',
+              desc: 'Compete with friends and prove your knowledge.',
             },
             {
               icon: '🏆',
-              title: 'Torneos',
-              desc: 'Participa en eventos semanales y gana premios.',
+              title: 'Tournaments',
+              desc: 'Participate in weekly events and win prizes.',
             },
           ].map((feature, index) => (
             <motion.div

@@ -1,5 +1,3 @@
-// src/pages/LandingPage.jsx
-import React from 'react';
 import Navbar from '../components/Navbar';
 import HeroScreen from '../pages/HeroScreen';
 
@@ -38,11 +36,11 @@ const LandingPage = () => {
       <section id='play' className='play-section'>
         <div className='play-container'>
           <h2>
-            ¿Listo para <span className='gradient-text'>Jugar</span>?
+            ¿ Ready to <span className='gradient-text'>Play</span>?
           </h2>
           <p>
-            Descarga Music Quiz Challenge ahora y comienza a demostrar tus
-            conocimientos musicales. Disponible en múltiples plataformas.
+            Download Music Quiz Challenge now and start proving your musical
+            knowledge. musical knowledge. Available on multiple platforms.
           </p>
 
           <div className='download-options'>
@@ -54,7 +52,7 @@ const LandingPage = () => {
                 ></path>
               </svg>
               <div>
-                <span>Descargar en</span>
+                <span>Download in</span>
                 <strong>App Store</strong>
               </div>
             </a>
@@ -67,7 +65,7 @@ const LandingPage = () => {
                 ></path>
               </svg>
               <div>
-                <span>Descargar en</span>
+                <span>Download in</span>
                 <strong>Google Play</strong>
               </div>
             </a>
@@ -86,16 +84,16 @@ const LandingPage = () => {
 
           <div className='footer-links'>
             <div className='footer-column'>
-              <h3>Enlaces</h3>
+              <h3>Links</h3>
               <ul>
                 <li>
-                  <a href='#'>Inicio</a>
+                  <a href='#'>Home</a>
                 </li>
                 <li>
-                  <a href='#features'>Características</a>
+                  <a href='#features'>Features</a>
                 </li>
                 <li>
-                  <a href='#play'>Jugar</a>
+                  <a href='#play'>Play</a>
                 </li>
                 <li>
                   <a href='#about'>About</a>
@@ -104,7 +102,7 @@ const LandingPage = () => {
             </div>
 
             <div className='footer-column'>
-              <h3>Síguenos</h3>
+              <h3>Follow us</h3>
               <div className='social-links'>
                 <a href='#' className='social-icon'>
                   <svg viewBox='0 0 24 24' width='24'>
