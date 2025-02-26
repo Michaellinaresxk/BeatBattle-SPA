@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Cambiar estilo de navbar al hacer scroll
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 50) {
@@ -22,7 +22,6 @@ const Navbar = () => {
     };
   }, []);
 
-  // Cerrar menú móvil al hacer clic en un enlace
   const handleLinkClick = () => {
     if (menuOpen) {
       setMenuOpen(false);
@@ -34,27 +33,29 @@ const Navbar = () => {
       <div className='navbar-container'>
         {/* Logo */}
         <div className='logo'>
-          <span className='logo-text'>
-            Music<span className='logo-accent'>Quiz</span>
-          </span>
+          <Link className='link' to='/' onClick={handleLinkClick}>
+            <span className='logo-text'>
+              Music<span className='logo-accent'>Quiz</span>
+            </span>
+          </Link>
         </div>
 
         {/* Enlaces de navegación - Versión desktop */}
         <ul className={`nav-links ${menuOpen ? 'active' : ''}`}>
           <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
             <a href='#features' onClick={handleLinkClick}>
-              Características
+              Features
             </a>
           </motion.li>
           <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
-            <a href='#play' onClick={handleLinkClick}>
-              Jugar
+            <a href='#' onClick={handleLinkClick}>
+              Play
             </a>
           </motion.li>
           <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
-            <a href='#about' onClick={handleLinkClick}>
+            <Link to='/AboutUs' onClick={handleLinkClick}>
               About
-            </a>
+            </Link>
           </motion.li>
           <li className='nav-button-container'>
             <motion.button
@@ -62,12 +63,14 @@ const Navbar = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Descargar
+              <a href='#play' onClick={handleLinkClick}>
+                Download
+              </a>
             </motion.button>
           </li>
         </ul>
 
-        {/* Botón menú hamburguesa - Versión móvil */}
+        {/* Button menú hamburguesa - mobile version */}
         <div
           className={`hamburger ${menuOpen ? 'active' : ''}`}
           onClick={() => setMenuOpen(!menuOpen)}

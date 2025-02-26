@@ -5,10 +5,12 @@
 @tailwind components;
 @tailwind utilities;
 
-@import './UI//styles/Navbar.css';
-@import './UI//styles/HomeScreen.css';
-@import './UI//styles/LandingPage.css';
-@import './UI//styles/QuizDisplay.css';
+@import './UI/styles/Navbar.css';
+@import './UI/styles/HomeScreen.css';
+@import './UI/styles/LandingPage.css';
+@import './UI/styles/QuizDisplay.css';
+@import './UI/styles/QuizGameView.css';
+@import './UI/styles/QuizRestults.css';
 
 body {
   font-family: 'Montserrat', sans-serif;
@@ -21,4 +23,62 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Archivo Black', sans-serif;
 }
+
+.link {
+  text-decoration: none;
+}
+
+/* Common utility classes */
+.gradient-text {
+  background: linear-gradient(135deg, #8A2BE2, #FF00FF);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glow-effect {
+  box-shadow: 0 0 15px rgba(138, 43, 226, 0.5);
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 
