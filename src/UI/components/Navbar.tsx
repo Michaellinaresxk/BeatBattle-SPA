@@ -40,7 +40,7 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Enlaces de navegación - Versión desktop */}
+        {/* Navigation links - Desktop version */}
         <ul className={`nav-links ${menuOpen ? 'active' : ''}`}>
           <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
             <a href='#features' onClick={handleLinkClick}>
@@ -69,8 +69,6 @@ const Navbar = () => {
             </motion.button>
           </li>
         </ul>
-
-        {/* Button menú hamburguesa - mobile version */}
         <div
           className={`hamburger ${menuOpen ? 'active' : ''}`}
           onClick={() => setMenuOpen(!menuOpen)}

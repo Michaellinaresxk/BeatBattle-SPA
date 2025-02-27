@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuizSocket } from '../../hooks/useQuizSocket';
-import { Player, PlayerAnswer, GameStatus } from '../../types/player';
+import { Player, GameStatus } from '../../types/player';
 import { motion } from 'framer-motion';
 
 const QuizDisplay: React.FC = () => {
@@ -9,14 +9,15 @@ const QuizDisplay: React.FC = () => {
   const navigate = useNavigate();
   const [gameState, setGameState] = useState<GameStatus>('setup');
   const [nickname, setNickname] = useState<string>('');
+
   const {
     roomCode,
     players,
-    playerAnswers,
     createRoom,
     joinRoom,
     startGame,
     isHost,
+    connectionError,
   } = useQuizSocket();
 
   // Redirect to game when room code is available
@@ -44,12 +45,34 @@ const QuizDisplay: React.FC = () => {
     }
   };
 
+  // Display connection error
+  if (connectionError) {
+    return (
+      <motion.div
+        className='error-screen'
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h2>Connection Error</h2>
+        <p>{connectionError}</p>
+        <motion.button
+          className='quiz-button'
+          onClick={() => window.location.reload()}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Retry Connection
+        </motion.button>
+      </motion.div>
+    );
+  }
+
   // Handle start game (host only)
   const handleStartGame = () => {
     if (isHost && players.length >= 1) {
       startGame();
-      // navigate(`/game/${roomCode}`);
-      navigate('/game/test123');
+      navigate(`/game/${roomCode}`);
     }
   };
   // Display setup screen (create a room)
