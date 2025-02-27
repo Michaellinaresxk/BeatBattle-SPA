@@ -1,0 +1,202 @@
+/* QuizWaitingRoom.css */
+.waiting-room {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #1a1155 0%, #1f3b96 100%);
+  color: white;
+}
+
+.waiting-room .title {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  background: linear-gradient(to right, #4CC9F0, #B142F5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.waiting-room .subtitle {
+  font-size: 1.2rem;
+  margin-top: 0.5rem;
+  margin-bottom: 3rem;
+  color: white;
+  opacity: 0.8;
+}
+
+.room-code {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.code-display {
+  font-size: 3rem;
+  font-weight: bold;
+  letter-spacing: 0.5rem;
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin: 1rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.room-code p {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.players-list {
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 3rem;
+}
+
+.players-list .subtitle {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1.5rem;
+}
+
+.player-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.player-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.player-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4CC9F0, #B142F5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.player-name {
+  font-weight: 500;
+  text-align: center;
+  word-break: break-word;
+}
+
+.start-game-container {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.start-game-button {
+  width: 100%;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  background: linear-gradient(to right, #4CC9F0, #B142F5);
+  border: none;
+  border-radius: 30px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(177, 66, 245, 0.4);
+}
+
+.start-game-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.waiting-message {
+  margin-top: 1rem;
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.waiting-for-host {
+  margin-top: 2rem;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.loading-dots span {
+  width: 10px;
+  height: 10px;
+  margin: 0 5px;
+  background-color: white;
+  border-radius: 50%;
+  display: inline-block;
+  animation: bounce 1.5s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .code-display {
+    font-size: 2rem;
+    letter-spacing: 0.3rem;
+  }
+  
+  .waiting-room .title {
+    font-size: 2rem;
+  }
+  
+  .players-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}

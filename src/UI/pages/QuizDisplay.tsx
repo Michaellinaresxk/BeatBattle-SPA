@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuizSocket } from '../../hooks/useQuizSocket';
-import { Player, GameStatus } from '../../types/player';
+import { useQuiz } from '../../context/QuixContext';
 import { motion } from 'framer-motion';
+import { GameStatus } from '../../types/player';
 
 const QuizDisplay: React.FC = () => {
   const { roomCode: urlRoomCode } = useParams<{ roomCode?: string }>();
@@ -15,10 +15,9 @@ const QuizDisplay: React.FC = () => {
     players,
     createRoom,
     joinRoom,
-    startGame,
-    isHost,
     connectionError,
-  } = useQuizSocket();
+    socket, // Asegúrate de que useQuiz expone el socket
+  } = useQuiz();
 
   // Redirect to game when room code is available
   useEffect(() => {
@@ -37,12 +36,34 @@ const QuizDisplay: React.FC = () => {
     }
   }, [urlRoomCode, roomCode, gameState]);
 
+  // Escuchar evento game_started
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('game_started', (data) => {
+      console.log('⚠️⚠️⚠️ GAME STARTED EVENT RECEIVED IN SPA:', data);
+      console.log('⚠️⚠️⚠️ Current location:', window.location.href);
+
+      // Navegar de forma directa
+      navigate(`/game/${roomCode}`);
+    });
+
+    return () => {
+      socket.off('game_started');
+    };
+  }, [socket, navigate, roomCode]);
+
   // Handle form submission to join a room
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (urlRoomCode && nickname.trim()) {
       joinRoom(urlRoomCode, nickname.trim());
     }
+  };
+
+  const handleStartExperience = () => {
+    // Redirect to category selection instead of directly creating a room
+    navigate('/categories');
   };
 
   // Display connection error
@@ -68,14 +89,7 @@ const QuizDisplay: React.FC = () => {
     );
   }
 
-  // Handle start game (host only)
-  const handleStartGame = () => {
-    if (isHost && players.length >= 1) {
-      startGame();
-      navigate(`/game/${roomCode}`);
-    }
-  };
-  // Display setup screen (create a room)
+  // Display setup screen (redirect to category selection)
   if (gameState === 'setup') {
     return (
       <motion.div
@@ -88,11 +102,11 @@ const QuizDisplay: React.FC = () => {
         <p>Create a new room to play with friends</p>
         <motion.button
           className='quiz-button'
-          onClick={createRoom}
+          onClick={handleStartExperience}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          Create Room
+          Start Quiz Experience
         </motion.button>
       </motion.div>
     );
@@ -138,77 +152,10 @@ const QuizDisplay: React.FC = () => {
     );
   }
 
-  // Display waiting room
-  if (gameState === 'waiting') {
-    return (
-      <div className='waiting-room'>
-        <h1 className='title'>Waiting Room</h1>
-        <div className='room-code'>
-          <h2 className='subtitle'>Room Code</h2>
-          <div className='code-display'>{roomCode}</div>
-          <p>Share this code with your friends</p>
-        </div>
-
-        <div className='players-list'>
-          <h2 className='subtitle'>Players ({players.length})</h2>
-          <div className='players-grid'>
-            {players.map((player: Player) => (
-              <motion.div
-                key={player.playerId}
-                className='player-card'
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className='player-avatar'>
-                  {player.nickname.charAt(0).toUpperCase()}
-                </div>
-                <p className='player-name'>
-                  {player.nickname} {player.isHost ? '(Host)' : ''}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Start game button (visible only to host) */}
-        {isHost && (
-          <motion.div
-            className='start-game-container'
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <motion.button
-              className='start-game-button'
-              onClick={handleStartGame}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              disabled={players.length < 1}
-            >
-              {players.length < 1 ? 'Wait for players to join' : 'Start Game'}
-            </motion.button>
-            {players.length < 1 && (
-              <p className='waiting-message'>
-                At least 1 player needed to start
-              </p>
-            )}
-          </motion.div>
-        )}
-
-        {/* Message for non-host players */}
-        {!isHost && (
-          <div className='waiting-for-host'>
-            <p>Waiting for the host to start the game...</p>
-            <div className='loading-dots'>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  // Redirect to waiting room if in 'waiting' state
+  if (gameState === 'waiting' && roomCode) {
+    navigate(`/room/${roomCode}`);
+    return null;
   }
 
   // Fallback for unexpected state
