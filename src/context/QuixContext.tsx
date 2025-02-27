@@ -1,10 +1,9 @@
 import React, { createContext, useContext } from 'react';
 import { useQuizSocket } from '../hooks/useQuizSocket';
-
 import {
   QuizContextProviderProps,
   QuizContextType,
-} from '../types/QuizContextType';
+} from '../types/quizContextType';
 
 // Create the context with default values
 const QuizContext = createContext<QuizContextType | null>(null);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuizSocket } from '../../hooks/useQuizSocket';
+import { useQuiz } from '../../context/QuixContext';
 import { Option } from '../../types/player';
 
 const QuizGameView: React.FC = () => {
@@ -15,12 +15,15 @@ const QuizGameView: React.FC = () => {
     submitAnswer,
     gameStatus,
     players,
-  } = useQuizSocket();
+    socket, // Asegúrate de que useQuiz expone el socket
+    setGameStatus, // Asegúrate de que useQuiz proporciona esta función
+  } = useQuiz();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState<boolean>(false);
   const [correctAnswer, setCorrectAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState<boolean>(false);
+  const [score, setScore] = useState<number>(0);
 
   // Handle game states
   useEffect(() => {
@@ -43,6 +46,11 @@ const QuizGameView: React.FC = () => {
       if (currentQuestion && currentQuestion.correctOptionId) {
         setCorrectAnswer(currentQuestion.correctOptionId);
         setShowResult(true);
+
+        // Update score if answered correctly
+        if (selectedOption === currentQuestion.correctOptionId) {
+          setScore((prevScore) => prevScore + timeRemaining * 10);
+        }
       }
     }
   }, [
@@ -53,7 +61,26 @@ const QuizGameView: React.FC = () => {
     players,
     navigate,
     roomCode,
+    selectedOption,
   ]);
+
+  // Escuchar el evento game_started
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('game_started', (data) => {
+      console.log('⚠️ Game started event received in QuizGameView:', data);
+
+      // Si hay una función setGameStatus proporcionada por el contexto
+      if (typeof setGameStatus === 'function') {
+        setGameStatus('playing');
+      }
+    });
+
+    return () => {
+      socket.off('game_started');
+    };
+  }, [socket, setGameStatus]);
 
   const handleSelectOption = (optionId: string) => {
     if (!hasAnswered && timeRemaining > 0) {
@@ -105,8 +132,9 @@ const QuizGameView: React.FC = () => {
         </svg>
       </div>
 
-      {/* Quiz header with timer */}
+      {/* Quiz header with timer and score */}
       <div className='quiz-header'>
+        <div className='score-display'>Score: {score}</div>
         <div className='quiz-timer'>
           <motion.div
             className='timer-progress'
