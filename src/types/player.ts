@@ -1,37 +1,29 @@
+export type GameStatus = 'setup' | 'waiting' | 'playing' | 'ended';
+
 export interface Player {
-  playerId: string;
+  id: string;
   nickname: string;
-  isHost?: boolean;
+  score: number;
+  answers: Record<string, string>;
 }
 
 export interface PlayerAnswer {
-  nickname: string;
+  playerId: string;
   answer: string;
-  correct: boolean;
-  points: number;
 }
 
 export interface Question {
-  id: string;
-  question: string;
-  order: number;
-  totalQuestions: number;
-  audioUrl?: string;
-  correctOptionId?: string;
-  image?: string;
+  text: string;
+  options: Option[];
+  answer: string;
 }
 
 export interface Option {
-  id: string;
   text: string;
+  isCorrect: boolean;
 }
 
 export interface GameResults {
-  [playerId: string]: {
-    score: number;
-    correctAnswers: number;
-    wrongAnswers: number;
-  };
+  players: Player[];
+  questions: Question[];
 }
-
-export type GameStatus = 'setup' | 'waiting' | 'playing' | 'ended';

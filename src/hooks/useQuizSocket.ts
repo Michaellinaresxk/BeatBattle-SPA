@@ -1,50 +1,22 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+'use client';
 
-// Types
-interface Player {
-  playerId: string;
-  nickname: string;
-  isHost?: boolean;
-}
+import { useState, useEffect, useCallback } from 'react';
+import { io, type Socket } from 'socket.io-client';
+import type {
+  GameResults,
+  Player,
+  PlayerAnswer,
+  Question,
+  Option,
+} from '../types/player';
 
-interface PlayerAnswer {
-  nickname: string;
-  answer: string;
-  correct: boolean;
-  points: number;
-}
-
-interface Question {
-  id: string;
-  question: string;
-  order: number;
-  totalQuestions: number;
-  audioUrl?: string;
-  correctOptionId?: string;
-}
-
-interface Option {
-  id: string;
-  text: string;
-}
-
-interface GameResults {
-  [playerId: string]: {
-    score: number;
-    correctAnswers: number;
-    wrongAnswers: number;
-  };
-}
-
-// Server URL - replace with your actual server URL from environment variable
-const SERVER_URL = 'http://192.168.1.10:5000';
+// Cambiamos el puerto a 3000 que es el puerto por defecto de nuestro servidor
+const SERVER_URL = 'http://192.168.1.10:3000';
 
 export function useQuizSocket() {
-  // Socket ref
-  const socketRef = useRef<Socket | null>(null);
-
-  // Room state
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(true);
   const [roomCode, setRoomCode] = useState<string>('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [isHost, setIsHost] = useState<boolean>(false);
@@ -54,131 +26,96 @@ export function useQuizSocket() {
   const [gameStatus, setGameStatus] = useState<
     'setup' | 'waiting' | 'playing' | 'ended'
   >('setup');
-
-  // Game state
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [options, setOptions] = useState<Option[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [gameResults, setGameResults] = useState<GameResults | null>(null);
 
-  // Initialize socket connection
   useEffect(() => {
-    const newSocket = io(SERVER_URL, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      withCredentials: false,
-      extraHeaders: {
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    let socketInstance: Socket;
 
-    socketRef.current = newSocket;
+    const connectSocket = () => {
+      setIsConnecting(true);
+      socketInstance = io(SERVER_URL, {
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 10000,
+      });
 
-    // Debug connection events
-    newSocket.on('connect', () => {
-      console.log(
-        '⭐ Successfully connected to the server via WebSockets:',
-        newSocket.id
-      );
-      console.log('Connection protocol:', newSocket.io.engine.transport.name);
-      newSocket.emit('ping_test', { client: 'SPA', timestamp: Date.now() });
-    });
+      socketInstance.on('connect', () => {
+        console.log('✅ Conectado al servidor:', socketInstance.id);
+        setConnectionError(null);
+        setSocket(socketInstance);
+        setIsConnecting(false);
+      });
 
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Error connecting to the server:', error.message);
-    });
+      socketInstance.on('connect_error', (error) => {
+        console.error('❌ Error de conexión:', error);
+        setConnectionError(`Error de conexión: ${error.message}`);
+        setIsConnecting(false);
+      });
 
-    newSocket.on('pong_test', (data) => {
-      console.log('✅ Response received from the server:', data);
-      console.log('Total time (ms):', Date.now() - data.originalTimestamp);
-    });
+      socketInstance.on('disconnect', (reason) => {
+        console.log('🔌 Desconectado:', reason);
+        setIsConnecting(true);
+        if (reason === 'io server disconnect') {
+          // reconectar manualmente
+          socketInstance.connect();
+        }
+      });
 
-    // Clean up on unmount
+      setupSocketListeners(socketInstance);
+    };
+
+    connectSocket();
+
     return () => {
-      if (newSocket) {
-        newSocket.disconnect();
+      if (socketInstance) {
+        socketInstance.disconnect();
       }
     };
   }, []);
 
-  // Set up socket event listeners
-  useEffect(() => {
-    const socket = socketRef.current;
-
-    if (!socket) return;
-
-    // Support for existing events
+  const setupSocketListeners = (socket: Socket) => {
     socket.on('room_created', (data) => {
       console.log('Room created:', data);
       setRoomCode(data.roomCode);
       setIsHost(true);
-      // Add yourself as a player when creating a room
-      setPlayers([
-        { playerId: socket.id, nickname: 'You (Host)', isHost: true },
-      ]);
+      setPlayers([{ id: socket.id, nickname: 'Host', isHost: true }]);
       setGameStatus('waiting');
     });
 
-    socket.on('player_joined', (data) => {
-      console.log('Player joined:', data);
-      setPlayers((prev) => {
-        const playerExists = prev.some((p) => p.playerId === data.playerId);
-        if (playerExists) return prev;
-        return [...prev, data];
-      });
+    socket.on('room_joined', (data) => {
+      console.log('Room joined:', data);
+      setRoomCode(data.roomCode);
+      setPlayers(data.players);
+      setGameStatus('waiting');
+    });
+
+    socket.on('player_joined', (player) => {
+      console.log('Player joined:', player);
+      setPlayers((prev) => [...prev, player]);
+    });
+
+    socket.on('game_started', (data) => {
+      console.log('Game started:', data);
+      setGameStatus('playing');
+    });
+
+    socket.on('new_question', (data) => {
+      console.log('New question:', data);
+      setCurrentQuestion(data.question);
+      setOptions(data.options);
+      setTimeRemaining(data.timeLimit);
     });
 
     socket.on('player_answered', (data) => {
       console.log('Player answered:', data);
-      const { playerId, nickname, answer, correct, points } = data;
-
-      // Update player answers
       setPlayerAnswers((prev) => ({
         ...prev,
-        [playerId]: { nickname, answer, correct, points },
+        [data.playerId]: { nickname: data.nickname, answer: data.answer },
       }));
-    });
-
-    // New events to support the full game flow
-    socket.on('player_left', (data) => {
-      console.log('Player left:', data);
-      setPlayers((prev) =>
-        prev.filter((player) => player.playerId !== data.playerId)
-      );
-    });
-
-    socket.on('game_started', () => {
-      console.log('Game started');
-      setGameStatus('playing');
-      setPlayerAnswers({});
-    });
-
-    socket.on('question_new', (data) => {
-      console.log('New question:', data);
-      setCurrentQuestion(data.question);
-      setOptions(data.options);
-      setTimeRemaining(data.timeLimit || 30);
-      setPlayerAnswers({});
-    });
-
-    socket.on('timer_update', (data) => {
-      setTimeRemaining(data.timeRemaining);
-    });
-
-    socket.on('question_ended', (data) => {
-      console.log('Question ended:', data);
-      // Reveal correct answer
-      if (data.correctOptionId) {
-        setCurrentQuestion((prev) =>
-          prev
-            ? {
-                ...prev,
-                correctOptionId: data.correctOptionId,
-              }
-            : null
-        );
-      }
     });
 
     socket.on('game_ended', (data) => {
@@ -187,98 +124,43 @@ export function useQuizSocket() {
       setGameResults(data.results);
     });
 
-    socket.on('room_joined', (data) => {
-      console.log('Room joined:', data);
-      setRoomCode(data.roomCode);
-      setPlayers(data.players);
-      setGameStatus('waiting');
-
-      // Check if current user is host
-      const isCurrentUserHost = data.players.some(
-        (player: Player) => player.playerId === socket.id && player.isHost
-      );
-      setIsHost(isCurrentUserHost);
+    socket.on('error', (error) => {
+      console.error('Server error:', error);
+      setConnectionError(`Server error: ${error.message}`);
     });
+  };
 
-    return () => {
-      // Remove all listeners
-      socket.off('room_created');
-      socket.off('player_joined');
-      socket.off('player_answered');
-      socket.off('player_left');
-      socket.off('game_started');
-      socket.off('question_new');
-      socket.off('timer_update');
-      socket.off('question_ended');
-      socket.off('game_ended');
-      socket.off('room_joined');
-    };
-  }, []);
-
-  // Function to create a new room
   const createRoom = useCallback(() => {
-    const socket = socketRef.current;
     if (socket) {
-      // Support the existing event name 'create_room'
       socket.emit('create_room');
     }
-  }, []);
+  }, [socket]);
 
-  // Function to join an existing room
-  const joinRoom = useCallback((roomCode: string, nickname: string) => {
-    const socket = socketRef.current;
-    if (socket) {
-      socket.emit('join_room', { roomCode, nickname });
-    }
-  }, []);
+  const joinRoom = useCallback(
+    (roomCode: string, nickname: string) => {
+      if (socket) {
+        socket.emit('join_room', { roomCode, nickname });
+      }
+    },
+    [socket]
+  );
 
-  // Function to start the game (host only)
   const startGame = useCallback(() => {
-    const socket = socketRef.current;
     if (socket && isHost) {
       socket.emit('start_game', { roomCode });
     }
-  }, [roomCode, isHost]);
+  }, [socket, roomCode, isHost]);
 
-  // Function to submit an answer
   const submitAnswer = useCallback(
-    (optionId: string) => {
-      const socket = socketRef.current;
+    (answer: string) => {
       if (socket) {
-        socket.emit('submit_answer', {
-          roomCode,
-          optionId,
-        });
+        socket.emit('submit_answer', { roomCode, answer });
       }
     },
-    [roomCode]
+    [socket, roomCode]
   );
 
-  // Function to reset the game (host only)
-  const resetGame = useCallback(() => {
-    const socket = socketRef.current;
-    if (socket && isHost) {
-      socket.emit('reset_game', { roomCode });
-      setGameStatus('waiting');
-      setPlayerAnswers({});
-      setCurrentQuestion(null);
-      setOptions([]);
-      setTimeRemaining(0);
-      setGameResults(null);
-    } else if (socket) {
-      // For non-hosts, just reset local state
-      setGameStatus('waiting');
-      setPlayerAnswers({});
-      setCurrentQuestion(null);
-      setOptions([]);
-      setTimeRemaining(0);
-      setGameResults(null);
-    }
-  }, [roomCode, isHost]);
-
-  // Function to leave the room
   const leaveRoom = useCallback(() => {
-    const socket = socketRef.current;
     if (socket) {
       socket.emit('leave_room', { roomCode });
       setRoomCode('');
@@ -291,10 +173,12 @@ export function useQuizSocket() {
       setTimeRemaining(0);
       setGameResults(null);
     }
-  }, [roomCode]);
+  }, [socket, roomCode]);
 
   return {
-    socket: socketRef.current,
+    socket,
+    connectionError,
+    isConnecting,
     roomCode,
     players,
     isHost,
@@ -308,7 +192,6 @@ export function useQuizSocket() {
     joinRoom,
     startGame,
     submitAnswer,
-    resetGame,
     leaveRoom,
   };
 }
