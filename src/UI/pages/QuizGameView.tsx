@@ -71,7 +71,6 @@ const QuizGameView: React.FC = () => {
     socket.on('game_started', (data) => {
       console.log('⚠️ Game started event received in QuizGameView:', data);
 
-      // Si hay una función setGameStatus proporcionada por el contexto
       if (typeof setGameStatus === 'function') {
         setGameStatus('playing');
       }
