@@ -15,8 +15,8 @@ const QuizGameView: React.FC = () => {
     submitAnswer,
     gameStatus,
     players,
-    socket, // Asegúrate de que useQuiz expone el socket
-    setGameStatus, // Asegúrate de que useQuiz proporciona esta función
+    socket,
+    setGameStatus,
   } = useQuiz();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -24,6 +24,17 @@ const QuizGameView: React.FC = () => {
   const [correctAnswer, setCorrectAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
+
+  // Enhanced debug logging
+  useEffect(() => {
+    console.log('Current game status:', gameStatus);
+    console.log('Current question:', currentQuestion);
+    console.log('Options:', options);
+    console.log('Options type:', typeof options);
+    console.log('Is array:', Array.isArray(options));
+    console.log('Current players:', players);
+    console.log('Player answers:', playerAnswers);
+  }, [gameStatus, currentQuestion, options, players, playerAnswers]);
 
   // Handle game states
   useEffect(() => {
@@ -36,13 +47,18 @@ const QuizGameView: React.FC = () => {
       setSelectedOption(null);
       setHasAnswered(false);
       setShowResult(false);
+      // Store correctAnswer from question data
+      setCorrectAnswer(currentQuestion.correctOptionId || null);
     }
 
+    // Check if playerAnswers and players are valid before comparing lengths
+    const allPlayersAnswered =
+      playerAnswers &&
+      players &&
+      Object.keys(playerAnswers).length === players.length;
+
     // Show correct answer after all players answered or time is up
-    if (
-      (playerAnswers && Object.keys(playerAnswers).length === players.length) ||
-      timeRemaining === 0
-    ) {
+    if (allPlayersAnswered || timeRemaining === 0) {
       if (currentQuestion && currentQuestion.correctOptionId) {
         setCorrectAnswer(currentQuestion.correctOptionId);
         setShowResult(true);
@@ -64,24 +80,41 @@ const QuizGameView: React.FC = () => {
     selectedOption,
   ]);
 
-  // Escuchar el evento game_started
+  // Listen for game_started event
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('game_started', (data) => {
-      console.log('⚠️ Game started event received in QuizGameView:', data);
+    // Listen for all events (debug)
+    socket.onAny((event, ...args) => {
+      console.log(`[SOCKET EVENT] ${event}:`, args);
+    });
 
+    const handleGameStarted = (data: any) => {
+      console.log('⚠️ Game started event received in QuizGameView:', data);
       if (typeof setGameStatus === 'function') {
         setGameStatus('playing');
       }
-    });
+    };
+
+    const handleQuestionEnded = (data: any) => {
+      console.log('Question ended event received:', data);
+      if (data && data.correctAnswer) {
+        setCorrectAnswer(data.correctAnswer);
+        setShowResult(true);
+      }
+    };
+
+    socket.on('game_started', handleGameStarted);
+    socket.on('question_ended', handleQuestionEnded);
 
     return () => {
-      socket.off('game_started');
+      socket.off('game_started', handleGameStarted);
+      socket.off('question_ended', handleQuestionEnded);
     };
   }, [socket, setGameStatus]);
 
   const handleSelectOption = (optionId: string) => {
+    console.log('Option selected:', optionId);
     if (!hasAnswered && timeRemaining > 0) {
       setSelectedOption(optionId);
       setHasAnswered(true);
@@ -102,6 +135,50 @@ const QuizGameView: React.FC = () => {
       } else {
         return 'quiz-option';
       }
+    }
+  };
+
+  // Helper function to safely render options
+  const renderOptions = () => {
+    // If options is an array
+    if (Array.isArray(options)) {
+      return options.map((option: Option, index: number) => (
+        <motion.div
+          key={option.id || `option-${index}`}
+          className={getOptionClassName(option.id)}
+          onClick={() => handleSelectOption(option.id)}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+          whileHover={!hasAnswered ? { scale: 1.05 } : {}}
+          whileTap={!hasAnswered ? { scale: 0.98 } : {}}
+        >
+          {option.text}
+        </motion.div>
+      ));
+    }
+    // If options is an object
+    else if (options && typeof options === 'object') {
+      return Object.entries(options).map(([key, value], index) => (
+        <motion.div
+          key={key || `option-${index}`}
+          className={getOptionClassName(key)}
+          onClick={() => handleSelectOption(key)}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+          whileHover={!hasAnswered ? { scale: 1.05 } : {}}
+          whileTap={!hasAnswered ? { scale: 0.98 } : {}}
+        >
+          {String(value)}
+        </motion.div>
+      ));
+    }
+    // Fallback for no options
+    else {
+      return <div className='error-message'>Waiting for options...</div>;
     }
   };
 
@@ -168,25 +245,9 @@ const QuizGameView: React.FC = () => {
         )}
       </motion.div>
 
-      {/* Options grid */}
+      {/* Options grid - using the renderOptions function */}
       <div className='options-container'>
-        <AnimatePresence>
-          {options.map((option: Option, index: number) => (
-            <motion.div
-              key={option.id}
-              className={getOptionClassName(option.id)}
-              onClick={() => handleSelectOption(option.id)}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileHover={!hasAnswered ? { scale: 1.05 } : {}}
-              whileTap={!hasAnswered ? { scale: 0.98 } : {}}
-            >
-              {option.text}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        <AnimatePresence>{renderOptions()}</AnimatePresence>
       </div>
 
       {/* Results overlay when answer is revealed */}
@@ -207,7 +268,22 @@ const QuizGameView: React.FC = () => {
               </h3>
               <p>The correct answer was:</p>
               <div className='correct-answer'>
-                {options.find((opt) => opt.id === correctAnswer)?.text}
+                {(() => {
+                  // Find correct answer text
+                  if (Array.isArray(options)) {
+                    const correctOption = options.find(
+                      (opt) => opt.id === correctAnswer
+                    );
+                    return correctOption ? correctOption.text : 'Unknown';
+                  } else if (
+                    options &&
+                    typeof options === 'object' &&
+                    correctAnswer
+                  ) {
+                    return options[correctAnswer] || 'Unknown';
+                  }
+                  return 'Unknown';
+                })()}
               </div>
             </div>
           </motion.div>
@@ -216,19 +292,23 @@ const QuizGameView: React.FC = () => {
 
       {/* Player answers visualization */}
       <div className='player-answers'>
-        {players.map((player) => (
-          <div
-            key={player.playerId}
-            className={`player-answer ${
-              playerAnswers[player.playerId] ? 'answered' : ''
-            }`}
-          >
-            <div className='player-avatar'>
-              {player.nickname.charAt(0).toUpperCase()}
+        {players &&
+          players.map((player) => (
+            <div
+              key={player.playerId || player.id}
+              className={`player-answer ${
+                playerAnswers &&
+                (playerAnswers[player.playerId] || playerAnswers[player.id])
+                  ? 'answered'
+                  : ''
+              }`}
+            >
+              <div className='player-avatar'>
+                {player.nickname.charAt(0).toUpperCase()}
+              </div>
+              <span className='player-name'>{player.nickname}</span>
             </div>
-            <span className='player-name'>{player.nickname}</span>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );

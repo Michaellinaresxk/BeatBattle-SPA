@@ -44,7 +44,7 @@ const MusicCategorySelection: React.FC = () => {
     if (selectedCategory) {
       // We'll need to update your backend to accept category as an optional parameter
       // For now, we'll just pass the category ID
-      createRoom();
+      createRoom(selectedCategory);
 
       // Navigate will happen via the useEffect above once roomCode is set
     }

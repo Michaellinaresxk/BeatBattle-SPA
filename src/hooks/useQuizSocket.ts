@@ -10,25 +10,21 @@ import type {
   Option,
 } from '../types/player';
 
-// Function to get the appropriate server URL based on environment
+// Configure server URL based on environment
 // const getServerUrl = () => {
 //   // Check if we're in development or production
 //   const isDev = process.env.NODE_ENV === 'development';
 
-//   // Try different endpoints for better compatibility
 //   if (isDev) {
-//     // Try to detect if we're in a local environment
-//     // Local development can use localhost
 //     return 'http://localhost:3000';
 //   }
 
-//   // For production, use your actual domain
+//   // For production
 //   return 'https://your-production-domain.com';
 // };
 
-// Configurable server URL
-// const SERVER_URL = process.env.REACT_APP_SERVER_URL || getServerUrl();
-
+// Use environment variable if available, otherwise use the function
+// IMPORTANT: Change this to your server's actual URL
 const SERVER_URL = 'http://192.168.1.10:3000';
 
 export function useQuizSocket() {
@@ -52,187 +48,250 @@ export function useQuizSocket() {
   const [connectionAttempts, setConnectionAttempts] = useState<number>(0);
   const MAX_RETRY_ATTEMPTS = 3;
 
-  useEffect(() => {
-    let socketInstance: Socket | null = null;
-    let retryTimeout: NodeJS.Timeout | null = null;
-
-    const connectSocket = () => {
-      if (connectionAttempts >= MAX_RETRY_ATTEMPTS) {
-        setConnectionError(
-          `Failed to connect after ${MAX_RETRY_ATTEMPTS} attempts. Please check your network connection or try again later.`
-        );
-        setIsConnecting(false);
-        return;
-      }
-
-      setIsConnecting(true);
-      console.log(
-        `Attempting to connect to server: ${SERVER_URL} (Attempt ${
-          connectionAttempts + 1
-        }/${MAX_RETRY_ATTEMPTS})`
+  // Function to establish socket connection
+  const connectSocket = useCallback(() => {
+    if (connectionAttempts >= MAX_RETRY_ATTEMPTS) {
+      setConnectionError(
+        `Failed to connect after ${MAX_RETRY_ATTEMPTS} attempts. Please check your network connection or try again later.`
       );
+      setIsConnecting(false);
+      return;
+    }
 
-      // Close existing socket if any
-      if (socketInstance) {
-        socketInstance.close();
+    setIsConnecting(true);
+    console.log(
+      `Attempting to connect to server: ${SERVER_URL} (Attempt ${
+        connectionAttempts + 1
+      }/${MAX_RETRY_ATTEMPTS})`
+    );
+
+    // Create new socket with robust options
+    const socketInstance = io(SERVER_URL, {
+      transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000, // 10 second connection timeout
+      withCredentials: false, // Change to true if you're using cookies for auth
+    });
+
+    socketInstance.on('connect', () => {
+      console.log('✅ Connected to server:', socketInstance?.id);
+      setConnectionError(null);
+      setSocket(socketInstance);
+      setIsConnecting(false);
+      setConnectionAttempts(0); // Reset connection attempts on success
+    });
+
+    socketInstance.on('connect_error', (error) => {
+      console.error('❌ Connection error:', error);
+      setConnectionError(`Connection error: ${error.message}`);
+      setIsConnecting(false);
+
+      // Increment attempts and retry
+      setConnectionAttempts((prev) => prev + 1);
+
+      // Clean up existing socket
+      socketInstance?.close();
+
+      // Try again with exponential backoff
+      const backoffTime = Math.min(
+        1000 * Math.pow(2, connectionAttempts),
+        10000
+      ); // Max 10 seconds
+      console.log(`Retrying in ${backoffTime / 1000} seconds...`);
+
+      setTimeout(() => {
+        connectSocket();
+      }, backoffTime);
+    });
+
+    socketInstance.on('disconnect', (reason) => {
+      console.log('🔌 Disconnected:', reason);
+      setIsConnecting(true);
+
+      if (reason === 'io server disconnect') {
+        // The server intentionally disconnected, try to reconnect manually
+        console.log('Server disconnected us, attempting to reconnect...');
+        socketInstance?.connect();
+      } else if (reason === 'transport close' || reason === 'ping timeout') {
+        // Connection was lost, try to reconnect
+        console.log('Connection lost, attempting to reconnect...');
+        socketInstance?.connect();
       }
+    });
 
-      // Create new socket with robust options
-      socketInstance = io(SERVER_URL, {
-        transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        timeout: 10000, // 10 second connection timeout
-        withCredentials: false, // Change to true if you're using cookies for auth
+    setupSocketListeners(socketInstance);
+  }, [connectionAttempts]);
+
+  // Set up all socket listeners
+  const setupSocketListeners = useCallback(
+    (socket: Socket) => {
+      // Debug all events
+      socket.onAny((event, ...args) => {
+        console.log(`[SOCKET] ${event}:`, args);
       });
 
-      socketInstance.on('connect', () => {
-        console.log('✅ Connected to server:', socketInstance?.id);
-        setConnectionError(null);
-        setSocket(socketInstance);
-        setIsConnecting(false);
-        setConnectionAttempts(0); // Reset connection attempts on success
+      // Room management events
+      socket.on('room_created', (data) => {
+        console.log('Room created:', data);
+        setRoomCode(data.roomCode);
+        setIsHost(true);
+        setPlayers([{ playerId: socket.id, nickname: 'Host', isHost: true }]);
+        setGameStatus('waiting');
       });
 
-      socketInstance.on('connect_error', (error) => {
-        console.error('❌ Connection error:', error);
-        setConnectionError(`Connection error: ${error.message}`);
-        setIsConnecting(false);
-
-        // Increment attempts and retry
-        setConnectionAttempts((prev) => prev + 1);
-
-        // Clean up existing socket
-        socketInstance?.close();
-
-        // Try again with exponential backoff
-        const backoffTime = Math.min(
-          1000 * Math.pow(2, connectionAttempts),
-          10000
-        ); // Max 10 seconds
-        console.log(`Retrying in ${backoffTime / 1000} seconds...`);
-
-        retryTimeout = setTimeout(() => {
-          connectSocket();
-        }, backoffTime);
+      socket.on('room_joined', (data) => {
+        console.log('Room joined:', data);
+        setRoomCode(data.roomCode);
+        if (Array.isArray(data.players)) {
+          setPlayers(data.players);
+        } else {
+          console.warn(
+            'Expected players array in room_joined event but got:',
+            data.players
+          );
+          setPlayers([]); // Set empty array as fallback
+        }
+        setGameStatus('waiting');
       });
 
-      socketInstance.on('disconnect', (reason) => {
-        console.log('🔌 Disconnected:', reason);
-        setIsConnecting(true);
-
-        if (reason === 'io server disconnect') {
-          // The server intentionally disconnected, try to reconnect manually
-          console.log('Server disconnected us, attempting to reconnect...');
-          socketInstance?.connect();
-        } else if (reason === 'transport close' || reason === 'ping timeout') {
-          // Connection was lost, try to reconnect
-          console.log('Connection lost, attempting to reconnect...');
-          socketInstance?.connect();
+      socket.on('player_joined', (player) => {
+        console.log('Player joined:', player);
+        if (player) {
+          setPlayers((prev) => [...prev, player]);
         }
       });
 
-      setupSocketListeners(socketInstance);
-    };
+      // Game state events
+      socket.on('game_started', (data) => {
+        console.log('Game started event received:', data);
+        setGameStatus('playing');
+      });
 
+      socket.on('new_question', (data) => {
+        console.log('New question received:', data);
+        if (!data) {
+          console.error('Received empty data in new_question event');
+          return;
+        }
+
+        if (data.question) {
+          setCurrentQuestion(data.question);
+        }
+
+        // Handle options in different formats
+        if (data.options) {
+          if (Array.isArray(data.options)) {
+            setOptions(data.options);
+          } else if (typeof data.options === 'object') {
+            // Convert object format to array format for web
+            const optionsArray = Object.entries(data.options).map(
+              ([id, text]) => ({
+                id,
+                text,
+              })
+            );
+            setOptions(optionsArray);
+          } else {
+            console.warn('Unexpected options format:', data.options);
+            setOptions([]);
+          }
+        } else {
+          console.warn('No options in new_question event');
+          setOptions([]);
+        }
+
+        setTimeRemaining(data.timeLimit || 30);
+        // Reset player answers for the new question
+        setPlayerAnswers({});
+      });
+
+      socket.on('player_answered', (data) => {
+        console.log('Player answered:', data);
+        if (data && data.playerId) {
+          setPlayerAnswers((prev) => ({
+            ...prev,
+            [data.playerId]: {
+              nickname: data.nickname,
+              answer: data.answer,
+              isCorrect: data.isCorrect,
+            },
+          }));
+        }
+      });
+
+      socket.on('timer_update', (time) => {
+        if (typeof time === 'number') {
+          setTimeRemaining(time);
+        }
+      });
+
+      socket.on('question_ended', (data) => {
+        console.log('Question ended:', data);
+        // Make sure we store the correct answer
+        if (data && data.correctAnswer && currentQuestion) {
+          setCurrentQuestion((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              correctOptionId: data.correctAnswer,
+            };
+          });
+        }
+      });
+
+      socket.on('game_ended', (data) => {
+        console.log('Game ended:', data);
+        setGameStatus('ended');
+        if (data && data.results) {
+          setGameResults(data.results);
+        }
+      });
+
+      socket.on('error', (error) => {
+        console.error('Server error:', error);
+        setConnectionError(`Server error: ${error.message || 'Unknown error'}`);
+      });
+
+      // Controller events
+      socket.on('controller_joined', (data) => {
+        console.log('Controller joined:', data);
+        if (data && Array.isArray(data.players)) {
+          setPlayers(data.players);
+        }
+      });
+
+      socket.on('player_ready', (data) => {
+        console.log('Player ready state updated:', data);
+        if (data && data.playerId) {
+          setPlayers((prev) =>
+            prev.map((p) =>
+              p.playerId === data.playerId ? { ...p, isReady: data.isReady } : p
+            )
+          );
+        }
+      });
+
+      socket.on('countdown_started', (data) => {
+        console.log('Countdown started:', data);
+      });
+    },
+    [currentQuestion]
+  );
+
+  // Connect socket on component mount
+  useEffect(() => {
     connectSocket();
 
-    // Cleanup function
+    // Cleanup function to disconnect socket
     return () => {
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-      if (socketInstance) {
-        socketInstance.disconnect();
+      if (socket) {
+        socket.disconnect();
       }
     };
-  }, [connectionAttempts]);
+  }, [connectSocket]);
 
-  const setupSocketListeners = (socket: Socket) => {
-    socket.on('room_created', (data) => {
-      console.log('Room created:', data);
-      setRoomCode(data.roomCode);
-      setIsHost(true);
-      setPlayers([{ playerId: socket.id, nickname: 'Host', isHost: true }]);
-      setGameStatus('waiting');
-    });
-
-    socket.on('room_joined', (data) => {
-      console.log('Room joined:', data);
-      setRoomCode(data.roomCode);
-      setPlayers(data.players);
-      setGameStatus('waiting');
-    });
-
-    socket.on('player_joined', (player) => {
-      console.log('Player joined:', player);
-      setPlayers((prev) => [...prev, player]);
-    });
-
-    socket.on('game_started', (data) => {
-      console.log('Game started:', data);
-      setGameStatus('playing');
-    });
-
-    socket.on('new_question', (data) => {
-      console.log('New question received:', data);
-      setCurrentQuestion(data.question);
-      setOptions(data.options);
-      setTimeRemaining(data.timeLimit);
-      // Reset player answers for the new question
-      setPlayerAnswers({});
-    });
-
-    socket.on('player_answered', (data) => {
-      console.log('Player answered:', data);
-      setPlayerAnswers((prev) => ({
-        ...prev,
-        [data.playerId]: { nickname: data.nickname, answer: data.answer },
-      }));
-    });
-
-    socket.on('timer_update', (time) => {
-      setTimeRemaining(time);
-    });
-
-    socket.on('question_ended', (data) => {
-      console.log('Question ended:', data);
-      // You might want to highlight the correct answer or show statistics here
-    });
-
-    socket.on('game_ended', (data) => {
-      console.log('Game ended:', data);
-      setGameStatus('ended');
-      setGameResults(data.results);
-    });
-
-    socket.on('error', (error) => {
-      console.error('Server error:', error);
-      setConnectionError(`Server error: ${error.message}`);
-    });
-
-    socket.on('controller_joined', (data) => {
-      console.log('Controller joined:', data);
-      if (data.players) {
-        setPlayers(data.players);
-      }
-    });
-
-    socket.on('player_ready', (data) => {
-      console.log('Player ready state updated:', data);
-      setPlayers((prev) =>
-        prev.map((p) =>
-          p.playerId === data.playerId ? { ...p, isReady: data.isReady } : p
-        )
-      );
-    });
-
-    socket.on('countdown_started', (data) => {
-      console.log('Countdown started:', data);
-      // You might want to show a countdown timer UI here
-    });
-  };
-
+  // Functions to interact with the socket
   const createRoom = useCallback(
     (category = null) => {
       if (!socket) {
@@ -297,6 +356,7 @@ export function useQuizSocket() {
       return;
     }
 
+    console.log('Attempting to start game with roomCode:', roomCode);
     socket.emit(
       'start_game',
       { roomCode, category: selectedCategory },
@@ -321,6 +381,7 @@ export function useQuizSocket() {
         return;
       }
 
+      console.log('Submitting answer:', answer, 'for room:', roomCode);
       socket.emit('submit_answer', { roomCode, answer }, (response: any) => {
         if (response && !response.success) {
           console.error('Failed to submit answer:', response.error);
