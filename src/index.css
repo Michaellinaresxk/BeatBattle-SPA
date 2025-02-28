@@ -12,6 +12,7 @@
 @import './UI/styles/QuizWaitingRoom.css';
 @import './UI/styles/QuizRestults.css';
 @import './UI/styles/MusicCategorySelection.css';
+@import './UI/styles/QuizGameView.css';
 
 body {
   font-family: 'Montserrat', sans-serif;
