@@ -36,25 +36,22 @@
   max-width: 500px;
   text-align: center;
   margin-bottom: 3rem;
+  position: relative;
+  z-index: 1;
 }
 
-.code-display {
-  font-size: 3rem;
-  font-weight: bold;
-  letter-spacing: 0.5rem;
-  padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  margin: 1rem 0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+.subtitle {
+  color: white;
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
 }
+
 
 .room-code p {
-  opacity: 0.7;
-  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.2rem;
+  margin-top: 1rem;
 }
-
 .players-list {
   width: 100%;
   max-width: 800px;
@@ -187,10 +184,7 @@
 }
 
 @media (max-width: 768px) {
-  .code-display {
-    font-size: 2rem;
-    letter-spacing: 0.3rem;
-  }
+
   
   .waiting-room .title {
     font-size: 2rem;

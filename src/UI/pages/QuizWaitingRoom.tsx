@@ -95,7 +95,7 @@ const QuizWaitingRoom = () => {
 
       <div className='room-code'>
         <h2 className='subtitle'>Room Code</h2>
-        <div className='code-display'>{roomCode}</div>
+        <h2 className='code-display'>{roomCode}</h2>
         <p>Share this code with your friends</p>
       </div>
 
@@ -152,31 +152,6 @@ const QuizWaitingRoom = () => {
             <span></span>
             <span></span>
             <span></span>
-          </div>
-        </div>
-      )}
-
-      {/* Debug logs (mostrar solo en desarrollo) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div
-          className='debug-panel'
-          style={{
-            position: 'fixed',
-            bottom: '10px',
-            left: '10px',
-            background: 'rgba(0,0,0,0.7)',
-            color: 'white',
-            padding: '10px',
-            borderRadius: '5px',
-            maxWidth: '80%',
-            fontSize: '12px',
-          }}
-        >
-          <h4>Debug Logs:</h4>
-          <div style={{ maxHeight: '200px', overflow: 'auto' }}>
-            {debugLog.map((log, i) => (
-              <div key={i}>{log}</div>
-            ))}
           </div>
         </div>
       )}

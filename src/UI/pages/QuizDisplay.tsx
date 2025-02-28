@@ -16,7 +16,8 @@ const QuizDisplay: React.FC = () => {
     createRoom,
     joinRoom,
     connectionError,
-    socket, // Asegúrate de que useQuiz expone el socket
+    socket,
+    gameStatus,
   } = useQuiz();
 
   // Redirect to game when room code is available
@@ -36,20 +37,34 @@ const QuizDisplay: React.FC = () => {
     }
   }, [urlRoomCode, roomCode, gameState]);
 
-  // Escuchar evento game_started
+  // Listen for game status changes
+  useEffect(() => {
+    console.log('Game status changed:', gameStatus);
+    if (gameStatus === 'playing' && roomCode) {
+      console.log('Navigating to game with roomCode:', roomCode);
+      navigate(`/game/${roomCode}`);
+    }
+  }, [gameStatus, navigate, roomCode]);
+
+  // Listen specifically for game_started event
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('game_started', (data) => {
-      console.log('⚠️⚠️⚠️ GAME STARTED EVENT RECEIVED IN SPA:', data);
+    const handleGameStarted = (data: any) => {
+      console.log('⚠️⚠️⚠️ GAME STARTED EVENT RECEIVED IN QuizDisplay:', data);
       console.log('⚠️⚠️⚠️ Current location:', window.location.href);
+      console.log('⚠️⚠️⚠️ Current roomCode:', roomCode);
 
-      // Navegar de forma directa
-      navigate(`/game/${roomCode}`);
-    });
+      // Force navigation directly
+      if (roomCode) {
+        navigate(`/game/${roomCode}`);
+      }
+    };
+
+    socket.on('game_started', handleGameStarted);
 
     return () => {
-      socket.off('game_started');
+      socket.off('game_started', handleGameStarted);
     };
   }, [socket, navigate, roomCode]);
 
