@@ -9,10 +9,11 @@
 @import './UI/styles/HomeScreen.css';
 @import './UI/styles/LandingPage.css';
 @import './UI/styles/QuizDisplay.css';
-@import './UI/styles/QuizWaitingRoom.css';
+@import './UI/styles/EntryCodeScreen.css';
 @import './UI/styles/QuizRestults.css';
 @import './UI/styles/MusicCategorySelection.css';
 @import './UI/styles/QuizGameView.css';
+@import './UI/styles/QuizMainSelection.css';
 
 body {
   font-family: 'Montserrat', sans-serif;

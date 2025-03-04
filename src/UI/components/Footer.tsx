@@ -27,7 +27,7 @@ export const Footer = () => {
                   <a href='#play'>Play</a>
                 </li>
                 <li>
-                  <Link to='/AboutUs'>About</Link>
+                  <Link to='/about'>About</Link>
                 </li>
               </ul>
             </div>

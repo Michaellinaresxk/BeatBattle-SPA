@@ -1,7 +1,10 @@
 import { Footer } from '../components/Footer';
 import Navbar from '../components/Navbar';
+import images from '../../assets/img/index';
 
 export const AboutUs = () => {
+  const photo = images.mikePhoto;
+
   return (
     <>
       <section id='about' className='about-section'>
@@ -26,7 +29,7 @@ export const AboutUs = () => {
           </div>
           <div className='about-image'>
             <div className='image-glow'></div>
-            <img src='/team-image.jpg' alt='Our Team' />
+            <img src={photo} alt='Our Team' />
           </div>
         </div>
       </section>

@@ -1,30 +1,53 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import QuizDisplay from './UI/pages/QuizDisplay';
-import QuizWaitingRoom from './UI/pages/QuizWaitingRoom';
-import QuizGameView from './UI/pages/QuizGameView';
-import MusicCategorySelection from './UI/pages/MusicCategorySelection';
-import { QuizContextProvider } from './context/QuixContext';
-import LandingPage from './UI/pages/LandingPage';
-import { AboutUs } from './UI/pages/AboutUs';
-import QuizResults from './UI/pages/QuizResults';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QuizProvider } from './context/QuixContext';
 
-const AppRouter = () => {
+// Pages
+import LandingPage from './UI/pages/LandingPage';
+import QuizDisplay from './UI/pages/QuizDisplay';
+import QuizMainSelection from './UI/pages/QuizMainSelection';
+import MusicCategorySelection from './UI/pages/MusicCategorySelection';
+import EntryCodeScreen from './UI/pages/EntryCodeScreen';
+import QuizGameView from './UI/pages/QuizGameView';
+import QuizResults from './UI/pages/QuizResults';
+import { AboutUs } from './UI/pages/AboutUs';
+
+const AppRoutes = () => {
   return (
-    <BrowserRouter>
-      <QuizContextProvider>
+    <Router>
+      <QuizProvider>
         <Routes>
+          {/* Landing Page */}
           <Route path='/' element={<LandingPage />} />
+
+          {/* Flujo principal */}
           <Route path='/quiz' element={<QuizDisplay />} />
-          <Route path='/categories' element={<MusicCategorySelection />} />
-          <Route path='/room/:roomCode' element={<QuizWaitingRoom />} />
-          <Route path='/AboutUs' element={<AboutUs />} />
+
+          {/* Sala de espera - muestra código y jugadores */}
+          <Route path='/room' element={<EntryCodeScreen />} />
+
+          {/* Selección de categoría principal */}
+          <Route path='/selection/:roomCode' element={<QuizMainSelection />} />
+
+          {/* Selección de subcategoría */}
+          <Route
+            path='/categories/:categoryType/:roomCode'
+            element={<MusicCategorySelection />}
+          />
+          {/* Juego y resultados */}
           <Route path='/game/:roomCode' element={<QuizGameView />} />
           <Route path='/results/:roomCode' element={<QuizResults />} />
-          <Route path='*' element={<Navigate to='/' replace />} />
+
+          {/* Rutas de compatibilidad con el flujo anterior */}
+          <Route path='/quiz/:roomCode' element={<QuizDisplay />} />
+
+          <Route path='/about' element={<AboutUs />} />
+
+          {/* Fallback para rutas desconocidas */}
+          <Route path='*' element={<LandingPage />} />
         </Routes>
-      </QuizContextProvider>
-    </BrowserRouter>
+      </QuizProvider>
+    </Router>
   );
 };
 
-export default AppRouter;
+export default AppRoutes;

@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import heroImage from '../../assets/img/index';
+import image from '../../assets/img/index';
 
 const HeroScreen = () => {
-  const image = heroImage;
+  const heroImage = image.heroImage;
   const navigate = useNavigate();
   // Create particles dynamically for the background
   useEffect(() => {
@@ -38,7 +38,7 @@ const HeroScreen = () => {
   }, []);
 
   const handlePlayNow = () => {
-    navigate('/quiz');
+    navigate('/room');
   };
 
   return (
@@ -92,7 +92,7 @@ const HeroScreen = () => {
           transition={{ duration: 1, delay: 0.3 }}
         >
           <div className='image-glow'></div>
-          <img src={image} alt='Music Quiz Game' className='hero-image' />
+          <img src={heroImage} alt='Music Quiz Game' className='hero-image' />
           <motion.div
             className='play-button-container'
             whileHover={{ scale: 1.1 }}
