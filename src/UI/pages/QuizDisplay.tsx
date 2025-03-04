@@ -9,6 +9,7 @@ const QuizDisplay: React.FC = () => {
   const navigate = useNavigate();
   const [gameState, setGameState] = useState<GameStatus>('setup');
   const [nickname, setNickname] = useState<string>('');
+  const [roomInput, setRoomInput] = useState<string>('');
 
   const {
     roomCode,
@@ -71,14 +72,22 @@ const QuizDisplay: React.FC = () => {
   // Handle form submission to join a room
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
+    if (roomInput.trim() && nickname.trim()) {
+      joinRoom(roomInput.trim(), nickname.trim());
+    }
+  };
+
+  // Handle form submission to join with URL room code
+  const handleJoinUrlRoom = (e: React.FormEvent) => {
+    e.preventDefault();
     if (urlRoomCode && nickname.trim()) {
       joinRoom(urlRoomCode, nickname.trim());
     }
   };
 
-  const handleStartExperience = () => {
-    // Redirect to category selection instead of directly creating a room
-    navigate('/categories');
+  const handleCreateQuiz = () => {
+    // Navigate to main category selection
+    navigate('/quiz-selection');
   };
 
   // Display connection error
@@ -104,7 +113,7 @@ const QuizDisplay: React.FC = () => {
     );
   }
 
-  // Display setup screen (redirect to category selection)
+  // Display setup screen (Join or Create Quiz)
   if (gameState === 'setup') {
     return (
       <motion.div
@@ -114,20 +123,68 @@ const QuizDisplay: React.FC = () => {
         transition={{ duration: 0.5 }}
       >
         <h1>Music Quiz Challenge</h1>
-        <p>Create a new room to play with friends</p>
-        <motion.button
-          className='quiz-button'
-          onClick={handleStartExperience}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Start Quiz Experience
-        </motion.button>
+        <div className='quiz-options'>
+          <div className='quiz-option-container'>
+            <h2>Join a Quiz</h2>
+            <form onSubmit={handleJoinRoom}>
+              <div className='input-group'>
+                <label htmlFor='roomCode'>Room Code</label>
+                <input
+                  type='text'
+                  id='roomCode'
+                  value={roomInput}
+                  onChange={(e) => setRoomInput(e.target.value)}
+                  placeholder='Enter room code'
+                  maxLength={6}
+                  required
+                />
+              </div>
+              <div className='input-group'>
+                <label htmlFor='nickname'>Your Nickname</label>
+                <input
+                  type='text'
+                  id='nickname'
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder='Enter your nickname'
+                  maxLength={20}
+                  required
+                />
+              </div>
+              <motion.button
+                type='submit'
+                className='quiz-button'
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                disabled={!roomInput.trim() || !nickname.trim()}
+              >
+                Join Game
+              </motion.button>
+            </form>
+          </div>
+
+          <div className='quiz-option-divider'>
+            <span>OR</span>
+          </div>
+
+          <div className='quiz-option-container'>
+            <h2>Create a Quiz</h2>
+            <p>Start a new quiz session for you and your friends</p>
+            <motion.button
+              className='quiz-button create-button'
+              onClick={handleCreateQuiz}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Create New Quiz
+            </motion.button>
+          </div>
+        </div>
       </motion.div>
     );
   }
 
-  // Display join screen (enter nickname)
+  // Display join screen (enter nickname for URL room code)
   if (gameState === 'joining') {
     return (
       <motion.div
@@ -140,7 +197,7 @@ const QuizDisplay: React.FC = () => {
         <div className='room-code-display'>
           Room Code: <span>{urlRoomCode}</span>
         </div>
-        <form onSubmit={handleJoinRoom}>
+        <form onSubmit={handleJoinUrlRoom}>
           <div className='input-group'>
             <label htmlFor='nickname'>Your Nickname</label>
             <input

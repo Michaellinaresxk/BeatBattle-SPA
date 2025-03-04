@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { navigate } from 'expo-router/build/global-state/routing';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -43,19 +44,17 @@ const Navbar = () => {
         {/* Navigation links - Desktop version */}
         <ul className={`nav-links ${menuOpen ? 'active' : ''}`}>
           <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
-            <a href='#features' onClick={handleLinkClick}>
+            <Link to='#features' onClick={handleLinkClick}>
               Features
-            </a>
-          </motion.li>
-          <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
-            <a href='#' onClick={handleLinkClick}>
-              Play
-            </a>
-          </motion.li>
-          <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
-            <Link to='/AboutUs' onClick={handleLinkClick}>
-              About
             </Link>
+          </motion.li>
+          <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
+            <Link to='#' onClick={handleLinkClick}>
+              Play
+            </Link>
+          </motion.li>
+          <motion.li whileHover={{ y: -3 }} whileTap={{ y: 0 }}>
+            <Link to='/about'>About</Link>
           </motion.li>
           <li className='nav-button-container'>
             <motion.button
@@ -63,9 +62,9 @@ const Navbar = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <a href='#play' onClick={handleLinkClick}>
+              <Link to='#play' onClick={handleLinkClick}>
                 Download
-              </a>
+              </Link>
             </motion.button>
           </li>
         </ul>

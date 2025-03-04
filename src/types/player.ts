@@ -2,9 +2,10 @@ export type GameStatus = 'setup' | 'waiting' | 'playing' | 'ended';
 
 export interface Player {
   id: string;
+  playerId?: string; // Para compatibilidad
   nickname: string;
-  score: number;
-  answers: Record<string, string>;
+  isHost: boolean;
+  score?: number;
 }
 
 export interface PlayerAnswer {
@@ -13,14 +14,17 @@ export interface PlayerAnswer {
 }
 
 export interface Question {
-  text: string;
-  options: Option[];
-  answer: string;
+  id: string;
+  question: string;
+  correctOptionId: string;
+  order: number;
+  totalQuestions: number;
+  audioUrl?: string;
 }
 
 export interface Option {
+  id: string;
   text: string;
-  isCorrect: boolean;
 }
 
 export interface GameResults {

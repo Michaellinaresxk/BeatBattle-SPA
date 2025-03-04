@@ -11,23 +11,38 @@ import { ReactNode } from 'react';
 
 export interface QuizContextType {
   socket: Socket | null;
-  connectionError: string | null;
-  isConnecting: boolean;
-  roomCode: string;
+  roomCode: string | null;
   players: Player[];
   isHost: boolean;
+  connectionError: string | null;
   gameStatus: GameStatus;
-  currentQuestion: Question | null;
-  options: Option[];
-  timeRemaining: number;
-  playerAnswers: Record<string, PlayerAnswer>;
-  gameResults: GameResults | null;
   selectedCategory: string | null;
-  createRoom: (category?: any) => void;
+  selectedCategoryType: string | null;
+  currentQuestion: Question | null;
+  options: Option[] | null;
+  timeRemaining: number;
+  playerAnswers: Record<string, string>;
+  gameResults: any | null;
+
+  // Methods
+  createRoom: (category: Category, nickname?: string) => void;
   joinRoom: (roomCode: string, nickname: string) => void;
-  startGame: () => void;
-  submitAnswer: (answer: string) => void;
   leaveRoom: () => void;
+  startGame: (
+    roomCode: string,
+    categoryId?: string,
+    categoryType?: string
+  ) => void;
+  submitAnswer: (answer: string) => void;
+  setGameStatus: (status: GameStatus) => void;
+  updateCategory: (roomCode: string, categoryType: string) => void;
+  updateRoomCategory: (
+    roomCode: string,
+    categoryType: string,
+    categoryId: string
+  ) => void;
+  selectQuizType: (roomCode: string, quizType: string) => void;
+  selectCategory: (roomCode: string, categoryId: string) => void;
 }
 
 export interface QuizContextProviderProps {
