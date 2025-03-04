@@ -51,13 +51,27 @@ const EntryCodeScreen = () => {
     }
   }, [players]);
 
-  // Efecto para manejar cambios en el estado del juego
   useEffect(() => {
     if (gameStatus === 'selection' && roomCode) {
       console.log(
         `✅ Estado del juego cambiado a 'selection', navegando a /selection/${roomCode}`
       );
       navigate(`/selection/${roomCode}`);
+    }
+    // Si el estado cambia directamente a 'playing', verificamos si debemos ir a selección primero
+    else if (gameStatus === 'playing' && roomCode) {
+      const currentPath = window.location.pathname;
+      // Si no estamos ya en la pantalla de juego o una de selección, ir a selección
+      if (
+        !currentPath.includes('/game/') &&
+        !currentPath.includes('/selection/') &&
+        !currentPath.includes('/categories/')
+      ) {
+        console.log(
+          `⚠️ Estado del juego es 'playing' pero no hemos seleccionado, redirigiendo a selección`
+        );
+        navigate(`/selection/${roomCode}`);
+      }
     }
   }, [gameStatus, roomCode, navigate]);
 

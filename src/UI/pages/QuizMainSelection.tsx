@@ -1,186 +1,121 @@
 'use client';
-
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import type { MainCategory } from '../../types/categories';
 import { mainCategories } from '../../constants/mainCategory';
 import { useQuiz } from '../../context/QuixContext';
+import { useNavigate, useParams } from 'react-router-dom';
+import '../styles/QuizMainSelection.css';
 
 const QuizMainSelection: React.FC = () => {
-  const navigate = useNavigate();
-  const { roomCode } = useParams();
-  const location = useLocation();
-  const { selectQuizType, updateCategory, setGameStatus, gameStatus, socket } =
-    useQuiz();
+  const navigate = useNavigate(); // Initialize navigate from react-router-dom
+  const { roomCode } = useParams(); // Get roomCode from URL params
+  const { selectQuizType, socket, gameStatus, setGameStatus } = useQuiz();
 
-  const [selectedCategory, setSelectedCategory] = useState<MainCategory | null>(
-    null
-  );
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
 
-  // Log para debugging
-  useEffect(() => {
-    console.log('🚀 QuizMainSelection montado con:', {
-      roomCode,
-      gameStatus,
-      locationState: location.state,
-      pathname: location.pathname,
-      currentPath: window.location.pathname,
-    });
-
-    // Guardar el roomCode en localStorage para recuperarlo si es necesario
-    if (roomCode) {
-      localStorage.setItem('currentRoomCode', roomCode);
-    }
-
-    // Verificar si nos llega un estado de juego 'playing' mientras estamos en esta pantalla
-    if (gameStatus === 'playing' && roomCode) {
-      console.log(
-        '⚠️ Estado playing detectado en QuizMainSelection, pero NO navegamos automáticamente'
-      );
-      // NO navegamos automáticamente, permitimos que el usuario elija su categoría
-    }
-  }, [roomCode, gameStatus, location]);
-
-  // IMPORTANTE: Escuchar específicamente los eventos de socket en este componente
   useEffect(() => {
     if (!socket) return;
 
-    const handleGameStarted = (data) => {
-      console.log(
-        '🎮 Evento game_started recibido en QuizMainSelection:',
-        data
-      );
+    const handleControllerCommand = (data: {
+      action: string;
+      direction?: string;
+    }) => {
+      console.log('Controller command received:', data);
 
-      // No navegamos automáticamente al juego desde aquí
-      // El usuario debe seleccionar una categoría primero
-      setGameStatus('selection');
-
-      console.log(
-        'Estado actualizado, pero mantenemos al usuario en la selección de categoría'
-      );
+      if (data.action === 'move' && data.direction) {
+        switch (data.direction) {
+          case 'up':
+            setSelectedCategoryIndex((prev) => Math.max(0, prev - 2));
+            break;
+          case 'down':
+            setSelectedCategoryIndex((prev) =>
+              Math.min(mainCategories.length - 1, prev + 2)
+            );
+            break;
+          case 'left':
+            setSelectedCategoryIndex((prev) => Math.max(0, prev - 1));
+            break;
+          case 'right':
+            setSelectedCategoryIndex((prev) =>
+              Math.min(mainCategories.length - 1, prev + 1)
+            );
+            break;
+        }
+      } else if (data.action === 'confirm_selection') {
+        handleContinue();
+      }
     };
 
-    // Escuchar el evento específico para ir a la selección de categoría
-    const handleGotoQuizSelection = (data) => {
-      console.log('🎯 Evento goto_quiz_selection recibido:', data);
-
-      // Actualizar el estado del juego a 'selection'
-      setGameStatus('selection');
-
-      // Ya estamos en la página correcta, no necesitamos navegar
-    };
-
-    socket.on('game_started', handleGameStarted);
-    socket.on('goto_quiz_selection', handleGotoQuizSelection);
+    socket.on('controller_command', handleControllerCommand);
 
     return () => {
-      socket.off('game_started', handleGameStarted);
-      socket.off('goto_quiz_selection', handleGotoQuizSelection);
+      socket.off('controller_command', handleControllerCommand);
     };
-  }, [socket, setGameStatus]);
+  }, [socket, selectedCategoryIndex]); // Added selectedCategoryIndex as dependency
 
-  // Manejar la selección de categoría
-  const handleCategorySelect = (category: MainCategory) => {
-    if (!roomCode) return;
-
-    console.log(`Seleccionando tipo de quiz: ${category.id}`);
-    setSelectedCategory(category);
-
-    // Actualizar el estado del contexto
-    updateCategory(roomCode, category.id);
-
-    // Cambiar explícitamente el estado a 'category'
-    setGameStatus('category');
-
-    // Navegar a la pantalla de selección de subcategoría
-    navigate(`/categories/${category.id}/${roomCode}`);
-  };
-
-  // Función para continuar después de seleccionar
   const handleContinue = () => {
-    console.log('🚀 Intentando continuar con:', {
-      selectedCategory,
-      roomCode,
-    });
-
+    const selectedCategory = mainCategories[selectedCategoryIndex];
     if (selectedCategory && roomCode) {
-      // Enviar el tipo de quiz seleccionado al servidor
-      selectQuizType(roomCode, selectedCategory.id);
-
-      console.log(
-        `🔼 Navegando a: /categories/${selectedCategory.id}/${roomCode}`
-      );
-      navigate(`/categories/${selectedCategory.id}/${roomCode}`);
-    } else {
-      console.error('❌ No se puede continuar: falta categoría o roomCode');
+      selectQuizType(roomCode as string, selectedCategory.id);
     }
   };
 
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleQuizTypeSelected = (data: { quizType: string }) => {
+      console.log('Quiz type selected:', data);
+      if (data.quizType && roomCode) {
+        navigate(`/categories/${data.quizType}/${roomCode}`);
+      }
+    };
+
+    socket.on('quiz_type_selected', handleQuizTypeSelected);
+
+    return () => {
+      socket.off('quiz_type_selected', handleQuizTypeSelected);
+    };
+  }, [socket, roomCode, navigate]);
+
   return (
     <div className='quiz-selection-container'>
-      <motion.div
-        className='quiz-selection'
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <motion.div className='quiz-selection'>
         <h1 className='main-title'>Choose Your Quiz Adventure</h1>
-        <p className='main-subtitle'>
-          Select a category to begin your challenge
-        </p>
+        <p className='main-subtitle'>Use the controller to select a category</p>
 
         <div className='main-categories-container'>
-          {mainCategories.map((category) => (
+          {mainCategories.map((category, index) => (
             <motion.div
               key={category.id}
               className={`main-category-card ${
-                selectedCategory?.id === category.id ? 'selected' : ''
+                index === selectedCategoryIndex ? 'selected' : ''
               }`}
-              onClick={() => handleCategorySelect(category)}
-              whileHover={{
-                scale: 1.03,
-                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+              animate={{
+                scale: index === selectedCategoryIndex ? 1.05 : 1,
+                boxShadow:
+                  index === selectedCategoryIndex
+                    ? '0 10px 25px rgba(0, 0, 0, 0.2)'
+                    : 'none',
               }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              onClick={() => setSelectedCategoryIndex(index)} // Added click handler for better interactivity
             >
-              <div
-                className='category-card-content'
-                style={{
-                  background: `linear-gradient(135deg, ${category.color}, ${category.color}99)`,
-                }}
-              >
-                <div className='category-icon-container'>
-                  <span className='category-icon'>{category.icon}</span>
-                </div>
-                <div className='category-info'>
-                  <h2 className='category-title'>{category.name}</h2>
-                  <p className='category-description'>{category.description}</p>
-                </div>
+              <div className='category-content'>
+                <h2>{category.name}</h2>
+                <p>{category.description}</p>
               </div>
             </motion.div>
           ))}
         </div>
 
-        <motion.button
+        {/* Add a continue button for non-controller users */}
+        {/* <button
           className='continue-button'
           onClick={handleContinue}
-          disabled={!selectedCategory}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{
-            opacity: selectedCategory ? 1 : 0.5,
-            y: 0,
-          }}
-          transition={{ duration: 0.3 }}
+          disabled={selectedCategoryIndex === undefined}
         >
-          {selectedCategory
-            ? `Continue with ${selectedCategory.name}`
-            : 'Select a category to continue'}
-        </motion.button>
+          Continue
+        </button> */}
       </motion.div>
     </div>
   );

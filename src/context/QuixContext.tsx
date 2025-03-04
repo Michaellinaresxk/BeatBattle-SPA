@@ -174,6 +174,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       socket.on('controller_joined', (data) => {
         console.log('🎮 Controlador unido:', data);
 
+        // Actualizar la lista de jugadores
         if (data && data.players) {
           setPlayers(data.players);
         } else if (data && data.mobileControllers) {
@@ -189,7 +190,10 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
           ]);
         }
 
-        if (isHost) {
+        if (isHost && gameStatus === 'waiting') {
+          console.log(
+            'Host detecta nuevo controlador, preparando navegación a selección'
+          );
           setGameStatus('selection');
         }
       });
@@ -239,6 +243,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       socket.on('game_started', (data) => {
         console.log('🚀 Juego iniciado:', data);
 
+        // Actualizar información de categoría
         if (data.category) {
           setSelectedCategory(data.category);
         }
@@ -247,18 +252,40 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
           setSelectedCategoryType(data.categoryType);
         }
 
+        // IMPORTANTE: Solo cambiamos a 'playing' pero NO navegamos automáticamente
+        // a menos que tengamos confirmación de que el usuario ya pasó por la selección
         setGameStatus('playing');
 
+        // Recuperar código de sala si es necesario
         const recoveryRoomCode =
           data.roomCode || roomCode || localStorage.getItem('currentRoomCode');
-        const isSelectionFlow =
-          gameStatus === 'selection' ||
-          gameStatus === 'category' ||
-          window.location.pathname.includes('/selection/') ||
-          window.location.pathname.includes('/categories/');
 
-        if (!isSelectionFlow && recoveryRoomCode && navigate) {
+        // Verificar la ruta actual para determinar si debemos navegar
+        const currentPath = window.location.pathname;
+        const isInGameFlow = currentPath.includes('/game/');
+
+        // Solo navegamos automáticamente si:
+        // 1. Ya estamos en la pantalla de juego y necesitamos actualizarla
+        // 2. O si explícitamente se indica que debemos saltar la selección
+        if (
+          (isInGameFlow || data.skipSelection) &&
+          recoveryRoomCode &&
+          navigate
+        ) {
+          console.log(
+            `Navegando a pantalla de juego: /game/${recoveryRoomCode}`
+          );
           navigate(`/game/${recoveryRoomCode}`);
+        } else if (
+          !currentPath.includes('/selection/') &&
+          !currentPath.includes('/categories/') &&
+          recoveryRoomCode
+        ) {
+          // Si no estamos en una pantalla de selección, vamos a la selección
+          console.log(
+            `Navegando a pantalla de selección: /selection/${recoveryRoomCode}`
+          );
+          navigate(`/selection/${recoveryRoomCode}`);
         }
       });
 
