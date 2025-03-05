@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { getServerUrl, getSocketOptions } from '../utils/socket.config';
+import { Player, PlayerAnswer, Question } from '../types/player';
 
 export function useQuizSocket() {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -18,15 +19,16 @@ export function useQuizSocket() {
     'setup' | 'waiting' | 'playing' | 'ended'
   >('setup');
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [options, setOptions] = useState<Option[]>([]);
+  const [options, setOptions] = useState([]);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  const [gameResults, setGameResults] = useState<GameResults | null>(null);
+  const [gameResults, setGameResults] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCategoryType, setSelectedCategoryType] = useState<
     string | null
   >(null);
   const [connectionAttempts, setConnectionAttempts] = useState<number>(0);
   const MAX_RETRY_ATTEMPTS = 3;
+  const [currentScreen, setCurrentScreen] = useState<string>('waiting');
 
   // Function to establish socket connection
   const connectSocket = useCallback(() => {

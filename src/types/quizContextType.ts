@@ -8,6 +8,7 @@ import {
   Question,
 } from './player';
 import { ReactNode } from 'react';
+import { Category } from './categories';
 
 export interface QuizContextType {
   socket: Socket | null;
@@ -24,6 +25,7 @@ export interface QuizContextType {
   playerAnswers: Record<string, string>;
   gameResults: any | null;
 
+  currentScreen: string;
   // Methods
   createRoom: (category: Category, nickname?: string) => void;
   joinRoom: (roomCode: string, nickname: string) => void;
@@ -43,6 +45,10 @@ export interface QuizContextType {
   ) => void;
   selectQuizType: (roomCode: string, quizType: string) => void;
   selectCategory: (roomCode: string, categoryId: string) => void;
+  getControllerCommands: (
+    targetScreen: string,
+    callback: (data: any) => void
+  ) => () => void;
 }
 
 export interface QuizContextProviderProps {

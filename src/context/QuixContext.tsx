@@ -42,6 +42,8 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
   );
   const [gameResults, setGameResults] = useState<any | null>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(true);
+
+  const [currentScreen, setCurrentScreen] = useState<string>('waiting');
   const navigate = useNavigate();
 
   // Inicializar la conexión socket
@@ -169,6 +171,67 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
           localStorage.setItem('currentRoomCode', data.roomCode);
         }
       });
+
+      socket.on('send_controller_command', (data) => {
+        console.log('🖥️ Comando de controlador recibido en context:', data);
+
+        // Emitir un evento específico que pueden escuchar los componentes
+        // Este es un workaround para "rebroadcast" el evento a todos los componentes
+        // que usan useQuiz
+        socket.emit('controller_command_internal', data);
+
+        // Algunas acciones las podríamos manejar directamente aquí
+        if (data.action === 'navigate' && data.screen) {
+          // Ejemplos de navegación directa desde el controlador
+          if (data.screen === 'selection' && roomCode) {
+            navigate(`/selection/${roomCode}`);
+          } else if (
+            data.screen === 'categories' &&
+            roomCode &&
+            data.categoryType
+          ) {
+            navigate(`/categories/${data.categoryType}/${roomCode}`);
+          }
+        }
+      });
+
+      const handleRouteChange = () => {
+        // Determinar la pantalla actual basada en la URL
+        const path = window.location.pathname;
+        let screen = 'unknown';
+
+        if (path.includes('/selection/')) {
+          screen = 'selection';
+        } else if (path.includes('/categories/')) {
+          screen = 'categories';
+        } else if (path.includes('/game/')) {
+          screen = 'game';
+        } else if (path.includes('/results/')) {
+          screen = 'results';
+        } else if (path === '/') {
+          screen = 'home';
+        }
+
+        setCurrentScreen(screen);
+
+        // Notificar a los controladores sobre el cambio de pantalla
+        if (socket && roomCode && screen !== 'unknown') {
+          console.log(
+            '🖥️ Notificando cambio de pantalla a controladores:',
+            screen
+          );
+          socket.emit('screen_changed', {
+            roomCode,
+            screen,
+            // Podríamos incluir datos adicionales relevantes para cada pantalla
+          });
+        }
+      };
+
+      window.addEventListener('popstate', handleRouteChange);
+
+      // Ejecutar una vez para establecer la pantalla inicial
+      handleRouteChange();
 
       // Eventos de controlador/jugador
       socket.on('controller_joined', (data) => {
@@ -353,6 +416,27 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       });
     },
     [roomCode, isHost, gameStatus, navigate]
+  );
+
+  const getControllerCommands = useCallback(
+    (targetScreen: string, callback: (data: any) => void) => {
+      if (!socket) return () => {};
+
+      const handleCommand = (data: any) => {
+        // Solo procesar comandos para esta pantalla específica o los que no tienen pantalla específica
+        if (data.targetScreen && data.targetScreen !== targetScreen) return;
+        callback(data);
+      };
+
+      // Escuchar el evento interno que hemos creado
+      socket.on('controller_command_internal', handleCommand);
+
+      // Retornar función para eliminar el listener
+      return () => {
+        socket.off('controller_command_internal', handleCommand);
+      };
+    },
+    [socket]
   );
 
   // Crear una nueva sala
@@ -587,6 +671,8 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     updateRoomCategory,
     selectQuizType,
     selectCategory,
+    currentScreen,
+    getControllerCommands,
   };
 
   return <QuizContext.Provider value={value}>{children}</QuizContext.Provider>;
