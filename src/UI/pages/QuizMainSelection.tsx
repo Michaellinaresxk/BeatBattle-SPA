@@ -1,6 +1,6 @@
 'use client';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { mainCategories } from '../../constants/mainCategory';
 import { useQuiz } from '../../context/QuixContext';
@@ -15,13 +15,18 @@ const QuizMainSelection: React.FC = () => {
 
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
 
-  const handleContinue = () => {
-    const selectedCategory = mainCategories[selectedCategoryIndex];
-    if (selectedCategory && roomCode) {
-      selectQuizType(roomCode as string, selectedCategory.id);
-    }
-  };
+  // Mejorado para ser una función de callback que no cambia en rerender
+  const handleContinue = useCallback(() => {
+    if (!roomCode) return;
 
+    const selectedCategory = mainCategories[selectedCategoryIndex];
+    if (selectedCategory) {
+      console.log(`Seleccionando tipo de quiz: ${selectedCategory.id}`);
+      selectQuizType(roomCode, selectedCategory.id);
+    }
+  }, [roomCode, selectedCategoryIndex, selectQuizType]);
+
+  // Manejar la respuesta del servidor cuando se selecciona un tipo de quiz
   useEffect(() => {
     if (!socket) return;
 
@@ -39,20 +44,21 @@ const QuizMainSelection: React.FC = () => {
     };
   }, [socket, roomCode, navigate]);
 
-  // Este es el único useEffect necesario para los controles
+  // Manejar eventos del controlador
   useEffect(() => {
     if (!socket) return;
 
-    // Log para depuración
-    console.log('QuizMainSelection está listo para recibir comandos');
-    console.log('Socket conectado:', !!socket);
-    console.log('Room code:', roomCode);
-
-    // Escuchar específicamente los eventos de dirección del controlador
+    // Escuchar eventos de dirección del controlador
     const handleDirection = (data) => {
-      console.log('🖥️ Dirección recibida:', data.direction);
+      console.log('🖥️ Dirección recibida en selección principal:', data);
 
-      switch (data.direction) {
+      // Asegurarse de que data tenga la estructura esperada
+      const direction =
+        data.direction || (data.action === 'move' ? data.direction : null);
+
+      if (!direction) return;
+
+      switch (direction) {
         case 'up':
           setSelectedCategoryIndex((prev) => Math.max(0, prev - 2));
           break;
@@ -72,18 +78,32 @@ const QuizMainSelection: React.FC = () => {
       }
     };
 
-    // Escuchar específicamente los eventos de "enter" del controlador
-    const handleEnter = (data) => {
-      console.log('🖥️ ENTER recibido');
+    // Escuchar eventos de "enter" del controlador
+    const handleEnter = () => {
+      console.log('🖥️ ENTER/OK recibido en selección principal');
       handleContinue();
     };
 
-    // Registrar los listeners utilizando los nombres de eventos exactos del servidor
+    // Escuchar eventos directos y comandos enviados
     socket.on('controller_direction', handleDirection);
     socket.on('controller_enter', handleEnter);
 
+    // También escuchar el formato alternativo que envía el controlador
+    socket.on('send_controller_command', (data) => {
+      console.log('Comando de controlador recibido:', data);
+      if (data.action === 'move') {
+        handleDirection(data);
+      } else if (data.action === 'confirm_selection') {
+        handleEnter();
+      }
+    });
+
     // Informar al controlador que esta pantalla está activa
     if (roomCode) {
+      console.log(
+        'Notificando controlador sobre pantalla activa:',
+        'selection'
+      );
       socket.emit('screen_changed', {
         roomCode,
         screen: 'selection',
@@ -95,14 +115,9 @@ const QuizMainSelection: React.FC = () => {
     return () => {
       socket.off('controller_direction', handleDirection);
       socket.off('controller_enter', handleEnter);
+      socket.off('send_controller_command');
     };
-  }, [
-    socket,
-    roomCode,
-    selectedCategoryIndex,
-    mainCategories.length,
-    handleContinue,
-  ]);
+  }, [socket, roomCode, handleContinue]);
 
   return (
     <div className='quiz-selection-container'>
@@ -136,6 +151,18 @@ const QuizMainSelection: React.FC = () => {
               </div>
             </motion.div>
           ))}
+        </div>
+
+        {/* Control manual para pruebas */}
+        <div className='manual-controls' style={{ marginTop: '20px' }}>
+          <motion.button
+            className='continue-button'
+            onClick={handleContinue}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Continue with {mainCategories[selectedCategoryIndex]?.name}
+          </motion.button>
         </div>
 
         {/* Indicador visual para el controlador */}
