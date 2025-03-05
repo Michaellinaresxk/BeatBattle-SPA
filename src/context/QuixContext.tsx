@@ -617,11 +617,15 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
 
       console.log('Iniciando juego:', { roomCode, categoryId, categoryType });
 
+      // Solo enviar el evento al servidor, sin cambiar el estado ni navegar automáticamente
       socket.emit('start_game', {
         roomCode,
         categoryId: categoryId || selectedCategory,
         categoryType: categoryType || selectedCategoryType,
       });
+
+      // NO cambiar el estado aquí, dejar que los eventos del servidor lo hagan
+      // La navegación debe ser manual en los componentes que manejan los eventos
     },
     [socket, socketReady, isHost, selectedCategory, selectedCategoryType]
   );

@@ -1,6 +1,6 @@
 'use client';
 import type React from 'react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { mainCategories } from '../../constants/mainCategory';
 import { useQuiz } from '../../context/QuixContext';
@@ -14,14 +14,19 @@ const QuizMainSelection: React.FC = () => {
     useQuiz();
 
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
+  // Para prevenir múltiples navegaciones
+  const navigationInProgressRef = useRef(false);
 
-  // Mejorado para ser una función de callback que no cambia en rerender
   const handleContinue = useCallback(() => {
-    if (!roomCode) return;
+    if (!roomCode || navigationInProgressRef.current) return;
+
+    // Marcar que hay una navegación en progreso
+    navigationInProgressRef.current = true;
 
     const selectedCategory = mainCategories[selectedCategoryIndex];
     if (selectedCategory) {
       console.log(`Seleccionando tipo de quiz: ${selectedCategory.id}`);
+      // Enviar el evento al servidor
       selectQuizType(roomCode, selectedCategory.id);
     }
   }, [roomCode, selectedCategoryIndex, selectQuizType]);
@@ -30,19 +35,36 @@ const QuizMainSelection: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    const handleQuizTypeSelected = (data: { quizType: string }) => {
-      console.log('Quiz type selected:', data);
-      if (data.quizType && roomCode) {
-        navigate(`/categories/${data.quizType}/${roomCode}`);
+    const handleQuizTypeSelected = (data: {
+      quizType: string;
+      roomCode: string;
+    }) => {
+      console.log('Quiz type selected, navegando a categorías:', data);
+
+      if (data.quizType && data.roomCode) {
+        // Navegar manualmente a la pantalla de categorías
+        navigate(`/categories/${data.quizType}/${data.roomCode}`);
+        // Resetear flag después de navegar
+        navigationInProgressRef.current = false;
       }
     };
 
+    // Escuchar eventos de navegación
     socket.on('quiz_type_selected', handleQuizTypeSelected);
+
+    socket.on('goto_category_selection', (data) => {
+      console.log('Evento goto_category_selection recibido:', data);
+      if (data.categoryType && data.roomCode) {
+        navigate(`/categories/${data.categoryType}/${data.roomCode}`);
+        navigationInProgressRef.current = false;
+      }
+    });
 
     return () => {
       socket.off('quiz_type_selected', handleQuizTypeSelected);
+      socket.off('goto_category_selection');
     };
-  }, [socket, roomCode, navigate]);
+  }, [socket, navigate]);
 
   // Manejar eventos del controlador
   useEffect(() => {
@@ -52,7 +74,7 @@ const QuizMainSelection: React.FC = () => {
     const handleDirection = (data) => {
       console.log('🖥️ Dirección recibida en selección principal:', data);
 
-      // Asegurarse de que data tenga la estructura esperada
+      // Asegurar formato consistente de dirección
       const direction =
         data.direction || (data.action === 'move' ? data.direction : null);
 
@@ -81,14 +103,14 @@ const QuizMainSelection: React.FC = () => {
     // Escuchar eventos de "enter" del controlador
     const handleEnter = () => {
       console.log('🖥️ ENTER/OK recibido en selección principal');
-      handleContinue();
+      if (!navigationInProgressRef.current) {
+        handleContinue();
+      }
     };
 
-    // Escuchar eventos directos y comandos enviados
+    // Escuchar todos los formatos de eventos del controlador
     socket.on('controller_direction', handleDirection);
     socket.on('controller_enter', handleEnter);
-
-    // También escuchar el formato alternativo que envía el controlador
     socket.on('send_controller_command', (data) => {
       console.log('Comando de controlador recibido:', data);
       if (data.action === 'move') {
@@ -101,8 +123,7 @@ const QuizMainSelection: React.FC = () => {
     // Informar al controlador que esta pantalla está activa
     if (roomCode) {
       console.log(
-        'Notificando controlador sobre pantalla activa:',
-        'selection'
+        'Notificando a controladores sobre pantalla activa: selection'
       );
       socket.emit('screen_changed', {
         roomCode,
@@ -111,7 +132,7 @@ const QuizMainSelection: React.FC = () => {
       });
     }
 
-    // Limpiar los listeners al desmontar
+    // Limpiar listeners al desmontar
     return () => {
       socket.off('controller_direction', handleDirection);
       socket.off('controller_enter', handleEnter);
@@ -160,9 +181,29 @@ const QuizMainSelection: React.FC = () => {
             onClick={handleContinue}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            disabled={navigationInProgressRef.current}
           >
             Continue with {mainCategories[selectedCategoryIndex]?.name}
           </motion.button>
+        </div>
+
+        {/* Panel de depuración */}
+        <div
+          style={{
+            margin: '20px auto',
+            padding: '10px',
+            background: 'rgba(0,0,0,0.1)',
+            borderRadius: '5px',
+            maxWidth: '400px',
+          }}
+        >
+          <p>Seleccionado: {mainCategories[selectedCategoryIndex]?.name}</p>
+          <p>Índice: {selectedCategoryIndex}</p>
+          <p>
+            Navegación en progreso:{' '}
+            {navigationInProgressRef.current ? 'Sí' : 'No'}
+          </p>
+          <p>Room Code: {roomCode}</p>
         </div>
 
         {/* Indicador visual para el controlador */}
