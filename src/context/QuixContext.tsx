@@ -14,17 +14,15 @@ import io, { type Socket } from 'socket.io-client';
 import { QuizContextType } from '../types/quizContextType';
 import { GameStatus, Player, Question } from '../types/player';
 
-// Configuración del socket - cambia la URL según tu entorno
-const SERVER_URL = 'http://192.168.1.10:3000'; // Ajusta esta IP a la de tu servidor
+const SERVER_URL = 'http://192.168.1.10:3000';
 
 const QuizContext = createContext<QuizContextType | undefined>(undefined);
 
-// Define the provider component
 export const QuizProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [socketReady, setSocketReady] = useState<boolean>(false); // Nuevo estado para rastrear cuando el socket está listo
+  const [socketReady, setSocketReady] = useState<boolean>(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -46,7 +44,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
   const [currentScreen, setCurrentScreen] = useState<string>('waiting');
   const navigate = useNavigate();
 
-  // Inicializar la conexión socket
   useEffect(() => {
     console.log('Intentando conectar al servidor:', SERVER_URL);
     setIsConnecting(true);
@@ -119,17 +116,14 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  // Configurar todos los event listeners del socket
   const setupEventListeners = useCallback(
     (socket: Socket) => {
-      // Depuración de todos los eventos
       socket.onAny((event, ...args) => {
-        console.log(`[EVENTO SOCKET] ${event}:`, args);
+        console.log(`[SOCKET EVENT] ${event}:`, args);
       });
 
-      // Eventos de sala
       socket.on('room_created', (data) => {
-        console.log('Sala creada:', data);
+        console.log('Created room:', data);
         setRoomCode(data.roomCode);
         setIsHost(true);
 
@@ -152,7 +146,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       socket.on('room_joined', (data) => {
-        console.log('Unido a sala:', data);
+        console.log('Joined to the room:', data);
         setRoomCode(data.roomCode);
         setPlayers(data.players || []);
         setGameStatus('waiting');
@@ -174,15 +168,9 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
 
       socket.on('send_controller_command', (data) => {
         console.log('🖥️ Comando de controlador recibido en context:', data);
-
-        // Emitir un evento específico que pueden escuchar los componentes
-        // Este es un workaround para "rebroadcast" el evento a todos los componentes
-        // que usan useQuiz
         socket.emit('controller_command_internal', data);
 
-        // Algunas acciones las podríamos manejar directamente aquí
         if (data.action === 'navigate' && data.screen) {
-          // Ejemplos de navegación directa desde el controlador
           if (data.screen === 'selection' && roomCode) {
             navigate(`/selection/${roomCode}`);
           } else if (
@@ -196,7 +184,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       const handleRouteChange = () => {
-        // Determinar la pantalla actual basada en la URL
         const path = window.location.pathname;
         let screen = 'unknown';
 
@@ -213,31 +200,23 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         }
 
         setCurrentScreen(screen);
-
-        // Notificar a los controladores sobre el cambio de pantalla
         if (socket && roomCode && screen !== 'unknown') {
-          console.log(
-            '🖥️ Notificando cambio de pantalla a controladores:',
-            screen
-          );
+          console.log('🖥️ Notifying screen change to controllers:', screen);
           socket.emit('screen_changed', {
             roomCode,
             screen,
-            // Podríamos incluir datos adicionales relevantes para cada pantalla
           });
         }
       };
 
       window.addEventListener('popstate', handleRouteChange);
 
-      // Ejecutar una vez para establecer la pantalla inicial
       handleRouteChange();
 
-      // Eventos de controlador/jugador
       socket.on('controller_joined', (data) => {
         console.log('🎮 Controlador unido:', data);
 
-        // Actualizar la lista de jugadores
+        // Update the list of players
         if (data && data.players) {
           setPlayers(data.players);
         } else if (data && data.mobileControllers) {
@@ -255,19 +234,19 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
 
         if (isHost && gameStatus === 'waiting') {
           console.log(
-            'Host detecta nuevo controlador, preparando navegación a selección'
+            'Host detects new controller, preparing navigation to selection'
           );
           setGameStatus('selection');
         }
       });
 
       socket.on('player_joined', (player) => {
-        console.log('Jugador unido:', player);
+        console.log('Player joined:', player);
         setPlayers((prevPlayers) => [...prevPlayers, player]);
       });
 
       socket.on('player_left', (data) => {
-        console.log('Jugador abandonó:', data);
+        console.log('Player left:', data);
         setPlayers((prevPlayers) =>
           prevPlayers.filter(
             (player) =>
@@ -276,15 +255,14 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         );
       });
 
-      // Eventos de categoría y navegación
       socket.on('category_updated', (data) => {
-        console.log('Categoría actualizada:', data);
+        console.log('Category updated:', data);
         setSelectedCategoryType(data.categoryType);
         setSelectedCategory(data.categoryId);
       });
 
       socket.on('goto_quiz_selection', (data) => {
-        console.log('Ir a selección de quiz:', data);
+        console.log('Go to quiz selection:', data);
         setGameStatus('selection');
 
         if (roomCode && navigate) {
@@ -293,7 +271,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       socket.on('goto_category_selection', (data) => {
-        console.log('Ir a selección de categoría:', data);
+        console.log('Go to category selection:', data);
         setGameStatus('category');
         setSelectedCategoryType(data.categoryType);
 
@@ -302,11 +280,15 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         }
       });
 
-      // Eventos de estado del juego
       socket.on('game_started', (data) => {
         console.log('🚀 Juego iniciado:', data);
+        setGameStatus('playing');
 
-        // Actualizar información de categoría
+        if (roomCode && navigate) {
+          console.log(`Navigating to game screen: /game/${roomCode}`);
+          navigate(`/game/${roomCode}`);
+        }
+
         if (data.category) {
           setSelectedCategory(data.category);
         }
@@ -315,45 +297,33 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
           setSelectedCategoryType(data.categoryType);
         }
 
-        // IMPORTANTE: Solo cambiamos a 'playing' pero NO navegamos automáticamente
-        // a menos que tengamos confirmación de que el usuario ya pasó por la selección
-        setGameStatus('playing');
-
-        // Recuperar código de sala si es necesario
         const recoveryRoomCode =
           data.roomCode || roomCode || localStorage.getItem('currentRoomCode');
 
-        // Verificar la ruta actual para determinar si debemos navegar
         const currentPath = window.location.pathname;
         const isInGameFlow = currentPath.includes('/game/');
 
-        // Solo navegamos automáticamente si:
-        // 1. Ya estamos en la pantalla de juego y necesitamos actualizarla
-        // 2. O si explícitamente se indica que debemos saltar la selección
         if (
           (isInGameFlow || data.skipSelection) &&
           recoveryRoomCode &&
           navigate
         ) {
-          console.log(
-            `Navegando a pantalla de juego: /game/${recoveryRoomCode}`
-          );
+          console.log(`Navigating to game screen: /game/${recoveryRoomCode}`);
           navigate(`/game/${recoveryRoomCode}`);
         } else if (
           !currentPath.includes('/selection/') &&
           !currentPath.includes('/categories/') &&
           recoveryRoomCode
         ) {
-          // Si no estamos en una pantalla de selección, vamos a la selección
           console.log(
-            `Navegando a pantalla de selección: /selection/${recoveryRoomCode}`
+            `Navigating to selection screen: /selection/${recoveryRoomCode}`
           );
           navigate(`/selection/${recoveryRoomCode}`);
         }
       });
 
       socket.on('new_question', (data) => {
-        console.log('Nueva pregunta:', data);
+        console.log('New question:', data);
 
         if (data.question) {
           setCurrentQuestion(data.question);
@@ -382,7 +352,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       socket.on('player_answered', (data) => {
-        console.log('Jugador respondió:', data);
+        console.log('Player answered:', data);
 
         if (data.playerId && data.answer) {
           setPlayerAnswers((prev) => ({
@@ -393,7 +363,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       socket.on('game_ended', (data) => {
-        console.log('Juego terminado:', data);
+        console.log('Game ended:', data);
         setGameStatus('ended');
         setGameResults(data.results);
 
@@ -402,16 +372,15 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         }
       });
 
-      // Manejo de errores
       socket.on('error', (error) => {
-        console.error('Error de socket recibido:', error);
+        console.error('Socket error received:', error);
 
         if (error && typeof error === 'object' && error.message) {
           setConnectionError(error.message);
         } else if (typeof error === 'string') {
           setConnectionError(error);
         } else {
-          setConnectionError('Error desconocido del servidor');
+          setConnectionError('Unknown server error');
         }
       });
     },
@@ -423,15 +392,12 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       if (!socket) return () => {};
 
       const handleCommand = (data: any) => {
-        // Solo procesar comandos para esta pantalla específica o los que no tienen pantalla específica
         if (data.targetScreen && data.targetScreen !== targetScreen) return;
         callback(data);
       };
 
-      // Escuchar el evento interno que hemos creado
       socket.on('controller_command_internal', handleCommand);
 
-      // Retornar función para eliminar el listener
       return () => {
         socket.off('controller_command_internal', handleCommand);
       };
@@ -439,19 +405,18 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     [socket]
   );
 
-  // Crear una nueva sala
   const createRoom = useCallback(
     (category: any, nickname?: string) => {
       if (!socket || !socketReady) {
         console.error('Cannot create room: Socket not connected');
-        setConnectionError('No se puede crear sala: Socket no conectado');
+        setConnectionError('Cannot create room: Socket not connected');
         return;
       }
 
       console.log(
-        'Creando sala con categoría:',
+        'Creating room with category:',
         category,
-        'y nickname:',
+        'and nickname:',
         nickname || 'Host'
       );
 
@@ -463,24 +428,22 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     [socket, socketReady]
   );
 
-  // Unirse a una sala existente
   const joinRoom = useCallback(
     (roomCode: string, nickname: string) => {
       if (!socket || !socketReady) {
         console.error('Cannot join room: Socket not connected');
-        setConnectionError('No se puede unir a sala: Socket no conectado');
+        setConnectionError('Cannot join room: Socket not connected');
         return;
       }
 
       if (!roomCode || !nickname) {
         console.error('Room code and nickname are required');
-        setConnectionError('El código de sala y nickname son obligatorios');
+        setConnectionError('Room code and nickname are required');
         return;
       }
 
-      console.log(`Uniéndose a sala ${roomCode} como ${nickname}`);
+      console.log(`Joining to room ${roomCode} like ${nickname}`);
 
-      // Guardar código antes de unirse
       localStorage.setItem('currentRoomCode', roomCode);
 
       socket.emit('join_room', { roomCode, nickname });
@@ -488,17 +451,15 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     [socket, socketReady]
   );
 
-  // Abandonar la sala actual
   const leaveRoom = useCallback(() => {
     if (!socket || !socketReady || !roomCode) {
       console.error('Cannot leave room: Socket not connected or no room code');
       return;
     }
 
-    console.log('Abandonando sala:', roomCode);
+    console.log('Leaving room:', roomCode);
     socket.emit('leave_room', { roomCode });
 
-    // Resetear estado
     setRoomCode(null);
     setPlayers([]);
     setIsHost(false);
@@ -511,16 +472,12 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     setPlayerAnswers({});
     setGameResults(null);
 
-    // Limpiar localStorage
     localStorage.removeItem('currentRoomCode');
-
-    // Navegar a inicio
     if (navigate) {
       navigate('/');
     }
   }, [socket, socketReady, roomCode, navigate]);
 
-  // Actualizar tipo de categoría
   const updateCategory = useCallback(
     (roomCode: string, categoryType: string) => {
       if (!socket || !socketReady || !roomCode) {
@@ -530,7 +487,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      console.log('Actualizando tipo de categoría:', categoryType);
+      console.log('Update category type:', categoryType);
       setSelectedCategoryType(categoryType);
 
       socket.emit('update_category_type', {
@@ -541,7 +498,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     [socket, socketReady]
   );
 
-  // Actualizar categoría y tipo
   const updateRoomCategory = useCallback(
     (roomCode: string, categoryType: string, categoryId: string) => {
       if (!socket || !socketReady || !roomCode) {
@@ -551,7 +507,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      console.log('Actualizando categoría de sala:', categoryType, categoryId);
+      console.log('Update category type:', categoryType, categoryId);
 
       socket.emit('update_room_category', {
         roomCode,
@@ -561,8 +517,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     },
     [socket, socketReady]
   );
-
-  // Seleccionar tipo de quiz
   const selectQuizType = useCallback(
     (roomCode: string, quizType: string) => {
       if (!socket || !socketReady || !roomCode) {
@@ -572,7 +526,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      console.log('Seleccionando tipo de quiz:', quizType);
+      console.log('Selected quiz type:', quizType);
 
       socket.emit('select_quiz_type', {
         roomCode,
@@ -582,7 +536,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     [socket, socketReady]
   );
 
-  // Seleccionar categoría específica
   const selectCategory = useCallback(
     (roomCode: string, categoryId: string) => {
       if (!socket || !socketReady || !roomCode) {
@@ -592,7 +545,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      console.log('Seleccionando categoría:', categoryId);
+      console.log('Selected category:', categoryId);
 
       socket.emit('select_category', {
         roomCode,
@@ -602,7 +555,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     [socket, socketReady]
   );
 
-  // Iniciar el juego (solo host)
   const startGame = useCallback(
     (roomCode: string, categoryId?: string, categoryType?: string) => {
       if (!socket || !socketReady) {
@@ -615,22 +567,17 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      console.log('Iniciando juego:', { roomCode, categoryId, categoryType });
+      console.log('Start game:', { roomCode, categoryId, categoryType });
 
-      // Solo enviar el evento al servidor, sin cambiar el estado ni navegar automáticamente
       socket.emit('start_game', {
         roomCode,
         categoryId: categoryId || selectedCategory,
         categoryType: categoryType || selectedCategoryType,
       });
-
-      // NO cambiar el estado aquí, dejar que los eventos del servidor lo hagan
-      // La navegación debe ser manual en los componentes que manejan los eventos
     },
     [socket, socketReady, isHost, selectedCategory, selectedCategoryType]
   );
 
-  // Enviar respuesta a pregunta
   const submitAnswer = useCallback(
     (answer: string) => {
       if (!socket || !socketReady || !roomCode) {
@@ -640,14 +587,13 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      console.log('Enviando respuesta:', answer);
+      console.log('Sending answer:', answer);
 
       socket.emit('submit_answer', { roomCode, answer });
     },
     [socket, socketReady, roomCode]
   );
 
-  // Proporcionar valores y funciones a los consumidores del contexto
   const value = {
     socket,
     roomCode,
@@ -682,7 +628,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
   return <QuizContext.Provider value={value}>{children}</QuizContext.Provider>;
 };
 
-// Custom hook para usar el QuizContext
 export const useQuiz = () => {
   const context = useContext(QuizContext);
   if (context === undefined) {

@@ -17,6 +17,8 @@ const QuizGameView: React.FC = () => {
     players,
     socket,
     setGameStatus,
+    isHost, // Asegúrate de extraer isHost del contexto
+    startGame, // Asegúrate de extraer startGame del contexto
   } = useQuiz();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -84,34 +86,28 @@ const QuizGameView: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    // Listen for all events (debug)
-    socket.onAny((event, ...args) => {
-      console.log(`[SOCKET EVENT] ${event}:`, args);
-    });
+    console.log('💻 Configurando eventos del juego en QuizGameView');
 
-    const handleGameStarted = (data: any) => {
-      console.log('⚠️ Game started event received in QuizGameView:', data);
+    const handleGameStarted = (data) => {
+      console.log('🎮 Game started event received in QuizGameView:', data);
+
       if (typeof setGameStatus === 'function') {
         setGameStatus('playing');
       }
-    };
 
-    const handleQuestionEnded = (data: any) => {
-      console.log('Question ended event received:', data);
-      if (data && data.correctAnswer) {
-        setCorrectAnswer(data.correctAnswer);
-        setShowResult(true);
+      // Siempre intentar navegar si recibimos game_started
+      if (roomCode) {
+        console.log(`Navegando a /game/${roomCode} desde QuizGameView`);
+        navigate(`/game/${roomCode}`);
       }
     };
 
     socket.on('game_started', handleGameStarted);
-    socket.on('question_ended', handleQuestionEnded);
 
     return () => {
       socket.off('game_started', handleGameStarted);
-      socket.off('question_ended', handleQuestionEnded);
     };
-  }, [socket, setGameStatus]);
+  }, [socket, roomCode, navigate, setGameStatus]);
 
   const handleSelectOption = (optionId: string) => {
     console.log('Option selected:', optionId);

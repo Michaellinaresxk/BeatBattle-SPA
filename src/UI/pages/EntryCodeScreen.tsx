@@ -23,7 +23,6 @@ const EntryCodeScreen = () => {
   const [hasNewController, setHasNewController] = useState(false);
   const [readyToCreateRoom, setReadyToCreateRoom] = useState(false);
 
-  // Efecto para detectar cuando tenemos un socket conectado y listo para crear una sala
   useEffect(() => {
     if (socketReady && !roomCode && !isConnecting) {
       setReadyToCreateRoom(true);
@@ -32,21 +31,18 @@ const EntryCodeScreen = () => {
     }
   }, [socketReady, roomCode, isConnecting]);
 
-  // Crear sala cuando el socket esté listo
   useEffect(() => {
     if (readyToCreateRoom) {
       console.log('Socket listo, creando sala temporal...');
-      // Crear una sala temporal con categoría por defecto
       const tempCategory = { id: 'temp', name: 'Temporary' };
-      createRoom(tempCategory, 'Host'); // Nickname por defecto para el host
+      createRoom(tempCategory, 'Host');
       setIsLoading(true);
-      setReadyToCreateRoom(false); // Para evitar múltiples creaciones
+      setReadyToCreateRoom(false);
     }
   }, [readyToCreateRoom, createRoom]);
 
-  // Efecto para detectar cuando se une un controlador
   useEffect(() => {
-    if (players.length > 1) {
+    if (players && players.length > 1) {
       setHasNewController(true);
     }
   }, [players]);
@@ -57,11 +53,9 @@ const EntryCodeScreen = () => {
         `✅ Estado del juego cambiado a 'selection', navegando a /selection/${roomCode}`
       );
       navigate(`/selection/${roomCode}`);
-    }
-    // Si el estado cambia directamente a 'playing', verificamos si debemos ir a selección primero
-    else if (gameStatus === 'playing' && roomCode) {
+    } else if (gameStatus === 'playing' && roomCode) {
       const currentPath = window.location.pathname;
-      // Si no estamos ya en la pantalla de juego o una de selección, ir a selección
+
       if (
         !currentPath.includes('/game/') &&
         !currentPath.includes('/selection/') &&
@@ -75,7 +69,6 @@ const EntryCodeScreen = () => {
     }
   }, [gameStatus, roomCode, navigate]);
 
-  // Manejar error de conexión
   useEffect(() => {
     if (connectionError) {
       setError(connectionError);
@@ -83,22 +76,18 @@ const EntryCodeScreen = () => {
     }
   }, [connectionError]);
 
-  // Efecto para actualizar el estado de carga cuando tenemos un código de sala
   useEffect(() => {
     if (roomCode) {
       setIsLoading(false);
     }
   }, [roomCode]);
 
-  // Escuchar eventos del socket específicos para este componente
   useEffect(() => {
     if (!socket) return;
 
-    // Manejar evento de controlador unido
     const handleControllerJoined = (data) => {
       console.log('📱 Controller joined event in EntryCodeScreen:', data);
 
-      // Si somos host y se unió un controlador
       if (isHost) {
         console.log('🔔 Controlador conectado y somos host, destacando botón');
         setHasNewController(true);

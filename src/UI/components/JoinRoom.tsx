@@ -13,15 +13,12 @@ const JoinRoom = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Si ya hay un roomCode en el contexto, navegar a la selección de categoría
   useEffect(() => {
     if (roomCode) {
-      // En lugar de ir directamente al juego, ir a la selección de tipo de juego
       navigate(`/selection/${roomCode}`);
     }
   }, [roomCode, navigate]);
 
-  // Mostrar error de conexión si existe
   useEffect(() => {
     if (connectionError) {
       setError(connectionError);
@@ -32,24 +29,20 @@ const JoinRoom = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validaciones básicas
     if (!nickname.trim()) {
-      setError('Por favor ingresa tu nickname');
+      setError('Please enter your nickname');
       return;
     }
 
     if (!inputRoomCode.trim()) {
-      setError('Por favor ingresa un código de sala');
+      setError('Please enter a room code');
       return;
     }
 
     setError(null);
     setIsJoining(true);
 
-    // Intentar unirse a la sala
     joinRoom(inputRoomCode.trim(), nickname.trim());
-
-    // La redirección se maneja en el useEffect que monitorea roomCode
   };
 
   return (
@@ -60,8 +53,8 @@ const JoinRoom = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1>Unirse a una Sala</h1>
-        <p>Ingresa el código de sala y tu nickname para unirte al juego</p>
+        <h1>Join to the Room</h1>
+        <p>Enter the room code and your nickname to join the game</p>
 
         {error && (
           <motion.div
@@ -82,7 +75,7 @@ const JoinRoom = () => {
               id='roomCode'
               value={inputRoomCode}
               onChange={(e) => setInputRoomCode(e.target.value)}
-              placeholder='Ingresa el código de sala'
+              placeholder='Enter the room code'
               maxLength={6}
               required
               disabled={Boolean(urlRoomCode)}
@@ -90,13 +83,13 @@ const JoinRoom = () => {
           </div>
 
           <div className='input-group'>
-            <label htmlFor='nickname'>Tu Nickname</label>
+            <label htmlFor='nickname'>Your Nickname</label>
             <input
               type='text'
               id='nickname'
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              placeholder='Ingresa tu nickname'
+              placeholder='Place your nickname'
               maxLength={20}
               required
             />
@@ -112,10 +105,10 @@ const JoinRoom = () => {
             {isJoining ? (
               <>
                 <span className='loading-spinner'></span>
-                Uniéndose al juego...
+                Joining the game...
               </>
             ) : (
-              'Unirse al Juego'
+              'Joining the game'
             )}
           </motion.button>
         </form>
@@ -130,7 +123,7 @@ const JoinRoom = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          Crear un Nuevo Juego
+          Create a new game
         </motion.button>
 
         <motion.button
@@ -139,7 +132,7 @@ const JoinRoom = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          Volver al Inicio
+          Back to Home
         </motion.button>
       </motion.div>
     </div>

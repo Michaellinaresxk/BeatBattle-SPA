@@ -44,39 +44,6 @@ const MusicCategorySelection: React.FC = () => {
   // Get title based on category type
   const title = CATEGORY_TYPE_TITLES[actualCategoryType] || 'Choose a Category';
 
-  // Inicializar la categoría seleccionada cuando se monta el componente
-  useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0]);
-      setSelectedIndex(0);
-    }
-  }, [categories, selectedCategory]);
-
-  // Escuchar eventos del servidor y navegar al juego cuando sea necesario
-  useEffect(() => {
-    if (!socket) return;
-
-    // Cuando el juego se inicia, navegar al juego
-    const handleGameStarted = (data) => {
-      console.log('Juego iniciado (MusicCategorySelection):', data);
-
-      // Solo navegar si estamos en la página de categorías y si tenemos roomCode
-      if (roomCode && window.location.pathname.includes('/categories/')) {
-        console.log(
-          `Navegando a juego desde MusicCategorySelection: /game/${roomCode}`
-        );
-        navigate(`/game/${roomCode}`);
-        navigationInProgressRef.current = false;
-      }
-    };
-
-    socket.on('game_started', handleGameStarted);
-
-    return () => {
-      socket.off('game_started', handleGameStarted);
-    };
-  }, [socket, roomCode, navigate]);
-
   // Definir las funciones de manejo con useCallback
   const handleCategorySelect = useCallback(
     (category: Category, index: number) => {
@@ -101,7 +68,6 @@ const MusicCategorySelection: React.FC = () => {
   }, [roomCode, navigate]);
 
   const handleStartGame = useCallback(() => {
-    // Evitar inicios múltiples
     if (
       !selectedCategory ||
       !roomCode ||
@@ -117,11 +83,11 @@ const MusicCategorySelection: React.FC = () => {
       return;
     }
 
-    // Marcar que hay una navegación en progreso
+    // Marcar la navegación en progreso
     navigationInProgressRef.current = true;
     setIsStarting(true);
 
-    console.log('Iniciando juego con:', {
+    console.log('🚀 Iniciando juego con:', {
       roomCode,
       categoryId: selectedCategory.id,
       categoryType: actualCategoryType,
@@ -133,7 +99,16 @@ const MusicCategorySelection: React.FC = () => {
     // Iniciar el juego con la categoría seleccionada
     startGame(roomCode, selectedCategory.id, actualCategoryType);
 
-    // No navegamos automáticamente aquí - esperamos el evento game_started
+    // Timeout de seguridad: Restablecer las banderas después de 5 segundos si no hay navegación
+    setTimeout(() => {
+      if (navigationInProgressRef.current) {
+        console.log(
+          '⚠️ Restableciendo banderas de navegación por timeout de seguridad'
+        );
+        navigationInProgressRef.current = false;
+        setIsStarting(false);
+      }
+    }, 5000);
   }, [
     selectedCategory,
     roomCode,
@@ -143,16 +118,8 @@ const MusicCategorySelection: React.FC = () => {
     isStarting,
   ]);
 
-  // Handle controller events
-  useEffect(() => {
-    if (!socket || !roomCode) return;
-
-    console.log(
-      'Configurando eventos del controlador en MusicCategorySelection'
-    );
-
-    // Handle direction events from controller
-    const handleDirection = (data) => {
+  const handleDirection = useCallback(
+    (data) => {
       // Extraer la dirección del evento
       const direction =
         data.direction || (data.action === 'move' ? data.direction : null);
@@ -178,31 +145,48 @@ const MusicCategorySelection: React.FC = () => {
       if (newIndex !== selectedIndex && categories[newIndex]) {
         handleCategorySelect(categories[newIndex], newIndex);
       }
-    };
+    },
+    [selectedIndex, categories, handleCategorySelect]
+  );
 
-    // Listen for "enter" events from controller
-    const handleEnter = () => {
-      console.log('🖥️ ENTER/OK recibido en MusicCategorySelection', {
-        isHost,
-        hasSelectedCategory: !!selectedCategory,
-      });
+  const handleEnter = useCallback(() => {
+    console.log('🔍 ENTER recibido con estado:', {
+      isHost,
+      hasCategory: !!selectedCategory,
+      navigationInProgress: navigationInProgressRef.current,
+      isStarting,
+    });
 
-      if (
-        isHost &&
-        selectedCategory &&
-        !navigationInProgressRef.current &&
-        !isStarting
-      ) {
-        console.log('Ejecutando handleStartGame desde controlador');
-        handleStartGame();
-      }
-    };
+    if (
+      isHost &&
+      selectedCategory &&
+      !navigationInProgressRef.current &&
+      !isStarting
+    ) {
+      console.log('Ejecutando handleStartGame desde controlador');
+      handleStartGame();
+    }
+  }, [
+    isHost,
+    selectedCategory,
+    navigationInProgressRef,
+    isStarting,
+    handleStartGame,
+  ]);
 
-    // Escuchar todos los formatos de eventos del controlador
+  // Un único useEffect para manejar eventos del controlador
+  useEffect(() => {
+    if (!socket || !roomCode) return;
+
+    console.log(
+      '🔍 Configurando UN SOLO listener para eventos del controlador'
+    );
+
+    // Registrar listeners
     socket.on('controller_direction', handleDirection);
     socket.on('controller_enter', handleEnter);
     socket.on('send_controller_command', (data) => {
-      console.log('Comando genérico del controlador recibido:', data);
+      console.log('🔍 Comando genérico recibido:', data);
 
       if (data.action === 'move') {
         handleDirection(data);
@@ -211,33 +195,80 @@ const MusicCategorySelection: React.FC = () => {
       }
     });
 
-    // Informar al controlador que esta pantalla está activa
-    console.log(
-      'Notificando a controladores sobre pantalla activa: categories'
-    );
+    // Notificar al controlador sobre la pantalla actual
     socket.emit('screen_changed', {
       roomCode,
       screen: 'categories',
       options: categories.map((c) => c.name),
     });
 
-    // Limpiar listeners al desmontar
     return () => {
+      console.log('🔍 Limpiando listeners de controlador');
       socket.off('controller_direction', handleDirection);
       socket.off('controller_enter', handleEnter);
       socket.off('send_controller_command');
     };
-  }, [
-    socket,
-    roomCode,
-    categories,
-    selectedCategory,
-    selectedIndex,
-    isHost,
-    isStarting,
-    handleCategorySelect,
-    handleStartGame,
-  ]);
+  }, [socket, roomCode, categories, handleDirection, handleEnter]);
+
+  // Inicializar la categoría seleccionada cuando se monta el componente
+  useEffect(() => {
+    if (categories.length > 0 && !selectedCategory) {
+      setSelectedCategory(categories[0]);
+      setSelectedIndex(0);
+    }
+  }, [categories, selectedCategory]);
+
+  // Un useEffect separado SOLO para el evento game_started
+  useEffect(() => {
+    if (!socket) return;
+
+    console.log('🔍 Configurando listener para game_started');
+
+    const handleGameStarted = (data) => {
+      console.log('🔍 GAME_STARTED recibido:', data);
+
+      // Restablecer banderas de navegación
+      navigationInProgressRef.current = false;
+      setIsStarting(false);
+
+      // Navegar si estamos en la página de categorías
+      if (roomCode && window.location.pathname.includes('/categories/')) {
+        console.log(`🔍 Navegando a /game/${roomCode}`);
+        navigate(`/game/${roomCode}`);
+      }
+    };
+
+    socket.on('game_started', handleGameStarted);
+
+    return () => {
+      console.log('🔍 Limpiando listener de game_started');
+      socket.off('game_started', handleGameStarted);
+    };
+  }, [socket, roomCode, navigate]);
+
+  // Un useEffect para manejar el evento category_selection_confirmed
+  useEffect(() => {
+    if (!socket) return;
+
+    console.log('🔍 Configurando listener para category_selection_confirmed');
+
+    const handleCategoryConfirmed = (data) => {
+      console.log('🔍 Categoría confirmada, iniciando juego:', data);
+
+      if (isHost && roomCode && data.roomCode === roomCode) {
+        // El host inicia el juego cuando recibe la confirmación
+        console.log('Host iniciando juego después de confirmación');
+        handleStartGame();
+      }
+    };
+
+    socket.on('category_selection_confirmed', handleCategoryConfirmed);
+
+    return () => {
+      console.log('🔍 Limpiando listener de category_selection_confirmed');
+      socket.off('category_selection_confirmed', handleCategoryConfirmed);
+    };
+  }, [socket, isHost, roomCode, handleStartGame]);
 
   return (
     <motion.div
