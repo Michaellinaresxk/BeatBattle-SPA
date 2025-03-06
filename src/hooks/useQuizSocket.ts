@@ -489,7 +489,7 @@ export function useQuizSocket() {
     updateRoomCategory,
     selectQuizType,
     selectCategory,
-    setGameStatus, // Expose this for components that need to update game status
+    setGameStatus,
   };
 }
 

@@ -2,7 +2,7 @@ export type GameStatus = 'setup' | 'waiting' | 'playing' | 'ended';
 
 export interface Player {
   id: string;
-  playerId?: string; // Para compatibilidad
+  playerId?: string;
   nickname: string;
   isHost: boolean;
   score?: number;

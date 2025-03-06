@@ -4,7 +4,7 @@ export interface MainCategory {
   icon: string;
   description: string;
   color: string;
-  path: string; // Ruta a la que navegar al seleccionar esta categoría
+  path: string;
 }
 export interface Category {
   id: string;

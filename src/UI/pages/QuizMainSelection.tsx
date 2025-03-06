@@ -1,6 +1,6 @@
 'use client';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { mainCategories } from '../../constants/mainCategory';
 import { useQuiz } from '../../context/QuixContext';
@@ -14,45 +14,73 @@ const QuizMainSelection: React.FC = () => {
     useQuiz();
 
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
+  // Para prevenir múltiples navegaciones
+  const navigationInProgressRef = useRef(false);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
+    if (!roomCode || navigationInProgressRef.current) return;
+
+    // Marcar que hay una navegación en progreso
+    navigationInProgressRef.current = true;
+
     const selectedCategory = mainCategories[selectedCategoryIndex];
-    if (selectedCategory && roomCode) {
-      selectQuizType(roomCode as string, selectedCategory.id);
+    if (selectedCategory) {
+      console.log(`Seleccionando tipo de quiz: ${selectedCategory.id}`);
+      // Enviar el evento al servidor
+      selectQuizType(roomCode, selectedCategory.id);
     }
-  };
+  }, [roomCode, selectedCategoryIndex, selectQuizType]);
 
+  // Manejar la respuesta del servidor cuando se selecciona un tipo de quiz
   useEffect(() => {
     if (!socket) return;
 
-    const handleQuizTypeSelected = (data: { quizType: string }) => {
-      console.log('Quiz type selected:', data);
-      if (data.quizType && roomCode) {
-        navigate(`/categories/${data.quizType}/${roomCode}`);
+    const handleQuizTypeSelected = (data: {
+      quizType: string;
+      roomCode: string;
+    }) => {
+      console.log('Quiz type selected, navegando a categorías:', data);
+
+      if (data.quizType && data.roomCode) {
+        // Navegar manualmente a la pantalla de categorías
+        navigate(`/categories/${data.quizType}/${data.roomCode}`);
+        // Resetear flag después de navegar
+        navigationInProgressRef.current = false;
       }
     };
 
+    // Escuchar eventos de navegación
     socket.on('quiz_type_selected', handleQuizTypeSelected);
+
+    socket.on('goto_category_selection', (data) => {
+      console.log('Evento goto_category_selection recibido:', data);
+      if (data.categoryType && data.roomCode) {
+        navigate(`/categories/${data.categoryType}/${data.roomCode}`);
+        navigationInProgressRef.current = false;
+      }
+    });
 
     return () => {
       socket.off('quiz_type_selected', handleQuizTypeSelected);
+      socket.off('goto_category_selection');
     };
-  }, [socket, roomCode, navigate]);
+  }, [socket, navigate]);
 
-  // Este es el único useEffect necesario para los controles
+  // Manejar eventos del controlador
   useEffect(() => {
     if (!socket) return;
 
-    // Log para depuración
-    console.log('QuizMainSelection está listo para recibir comandos');
-    console.log('Socket conectado:', !!socket);
-    console.log('Room code:', roomCode);
-
-    // Escuchar específicamente los eventos de dirección del controlador
+    // Escuchar eventos de dirección del controlador
     const handleDirection = (data) => {
-      console.log('🖥️ Dirección recibida:', data.direction);
+      console.log('🖥️ Dirección recibida en selección principal:', data);
 
-      switch (data.direction) {
+      // Asegurar formato consistente de dirección
+      const direction =
+        data.direction || (data.action === 'move' ? data.direction : null);
+
+      if (!direction) return;
+
+      switch (direction) {
         case 'up':
           setSelectedCategoryIndex((prev) => Math.max(0, prev - 2));
           break;
@@ -72,18 +100,31 @@ const QuizMainSelection: React.FC = () => {
       }
     };
 
-    // Escuchar específicamente los eventos de "enter" del controlador
-    const handleEnter = (data) => {
-      console.log('🖥️ ENTER recibido');
-      handleContinue();
+    // Escuchar eventos de "enter" del controlador
+    const handleEnter = () => {
+      console.log('🖥️ ENTER/OK recibido en selección principal');
+      if (!navigationInProgressRef.current) {
+        handleContinue();
+      }
     };
 
-    // Registrar los listeners utilizando los nombres de eventos exactos del servidor
+    // Escuchar todos los formatos de eventos del controlador
     socket.on('controller_direction', handleDirection);
     socket.on('controller_enter', handleEnter);
+    socket.on('send_controller_command', (data) => {
+      console.log('Comando de controlador recibido:', data);
+      if (data.action === 'move') {
+        handleDirection(data);
+      } else if (data.action === 'confirm_selection') {
+        handleEnter();
+      }
+    });
 
     // Informar al controlador que esta pantalla está activa
     if (roomCode) {
+      console.log(
+        'Notificando a controladores sobre pantalla activa: selection'
+      );
       socket.emit('screen_changed', {
         roomCode,
         screen: 'selection',
@@ -91,18 +132,13 @@ const QuizMainSelection: React.FC = () => {
       });
     }
 
-    // Limpiar los listeners al desmontar
+    // Limpiar listeners al desmontar
     return () => {
       socket.off('controller_direction', handleDirection);
       socket.off('controller_enter', handleEnter);
+      socket.off('send_controller_command');
     };
-  }, [
-    socket,
-    roomCode,
-    selectedCategoryIndex,
-    mainCategories.length,
-    handleContinue,
-  ]);
+  }, [socket, roomCode, handleContinue]);
 
   return (
     <div className='quiz-selection-container'>
@@ -136,6 +172,38 @@ const QuizMainSelection: React.FC = () => {
               </div>
             </motion.div>
           ))}
+        </div>
+
+        {/* Control manual para pruebas */}
+        <div className='manual-controls' style={{ marginTop: '20px' }}>
+          <motion.button
+            className='continue-button'
+            onClick={handleContinue}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            disabled={navigationInProgressRef.current}
+          >
+            Continue with {mainCategories[selectedCategoryIndex]?.name}
+          </motion.button>
+        </div>
+
+        {/* Panel de depuración */}
+        <div
+          style={{
+            margin: '20px auto',
+            padding: '10px',
+            background: 'rgba(0,0,0,0.1)',
+            borderRadius: '5px',
+            maxWidth: '400px',
+          }}
+        >
+          <p>Seleccionado: {mainCategories[selectedCategoryIndex]?.name}</p>
+          <p>Índice: {selectedCategoryIndex}</p>
+          <p>
+            Navegación en progreso:{' '}
+            {navigationInProgressRef.current ? 'Sí' : 'No'}
+          </p>
+          <p>Room Code: {roomCode}</p>
         </div>
 
         {/* Indicador visual para el controlador */}
