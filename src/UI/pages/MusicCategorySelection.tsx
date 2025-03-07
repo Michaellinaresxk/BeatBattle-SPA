@@ -44,7 +44,7 @@ const MusicCategorySelection: React.FC = () => {
   // Get title based on category type
   const title = CATEGORY_TYPE_TITLES[actualCategoryType] || 'Choose a Category';
 
-  // Definir las funciones de manejo con useCallback
+  // Define the handling functions with useCallback
   const handleCategorySelect = useCallback(
     (category: Category, index: number) => {
       console.log(`Seleccionando categoría: ${category.id} en índice ${index}`);
@@ -120,13 +120,13 @@ const MusicCategorySelection: React.FC = () => {
 
   const handleDirection = useCallback(
     (data) => {
-      // Extraer la dirección del evento
+      // Extract the event address
       const direction =
         data.direction || (data.action === 'move' ? data.direction : null);
 
       if (!direction) return;
 
-      // Calcular el nuevo índice basado en la dirección
+      // Calculate the new index based on address
       let newIndex = selectedIndex;
 
       if (direction === 'right') {
@@ -134,14 +134,14 @@ const MusicCategorySelection: React.FC = () => {
       } else if (direction === 'left') {
         newIndex = (selectedIndex - 1 + categories.length) % categories.length;
       } else if (direction === 'down') {
-        // Avanzar 3 posiciones o ir al final
+        // Advance 3 positions or go to the end
         newIndex = Math.min(selectedIndex + 3, categories.length - 1);
       } else if (direction === 'up') {
-        // Retroceder 3 posiciones o ir al inicio
+        // Go back 3 positions or go to the beginning
         newIndex = Math.max(selectedIndex - 3, 0);
       }
 
-      // Actualizar la selección si el índice cambió
+      // Update the selection if the index changed
       if (newIndex !== selectedIndex && categories[newIndex]) {
         handleCategorySelect(categories[newIndex], newIndex);
       }
@@ -150,7 +150,7 @@ const MusicCategorySelection: React.FC = () => {
   );
 
   const handleEnter = useCallback(() => {
-    console.log('🔍 ENTER recibido con estado:', {
+    console.log('🔍 ENTER received with status:', {
       isHost,
       hasCategory: !!selectedCategory,
       navigationInProgress: navigationInProgressRef.current,
@@ -163,7 +163,7 @@ const MusicCategorySelection: React.FC = () => {
       !navigationInProgressRef.current &&
       !isStarting
     ) {
-      console.log('Ejecutando handleStartGame desde controlador');
+      console.log('Running handleStartGame from controller');
       handleStartGame();
     }
   }, [
@@ -174,19 +174,13 @@ const MusicCategorySelection: React.FC = () => {
     handleStartGame,
   ]);
 
-  // Un único useEffect para manejar eventos del controlador
   useEffect(() => {
     if (!socket || !roomCode) return;
 
-    console.log(
-      '🔍 Configurando UN SOLO listener para eventos del controlador'
-    );
-
-    // Registrar listeners
     socket.on('controller_direction', handleDirection);
     socket.on('controller_enter', handleEnter);
     socket.on('send_controller_command', (data) => {
-      console.log('🔍 Comando genérico recibido:', data);
+      console.log('🔍 Generic command received:', data);
 
       if (data.action === 'move') {
         handleDirection(data);
@@ -195,7 +189,7 @@ const MusicCategorySelection: React.FC = () => {
       }
     });
 
-    // Notificar al controlador sobre la pantalla actual
+    // Notify the controller about the current display
     socket.emit('screen_changed', {
       roomCode,
       screen: 'categories',
@@ -203,14 +197,14 @@ const MusicCategorySelection: React.FC = () => {
     });
 
     return () => {
-      console.log('🔍 Limpiando listeners de controlador');
+      console.log('🔍 Clearing controller listeners');
       socket.off('controller_direction', handleDirection);
       socket.off('controller_enter', handleEnter);
       socket.off('send_controller_command');
     };
   }, [socket, roomCode, categories, handleDirection, handleEnter]);
 
-  // Inicializar la categoría seleccionada cuando se monta el componente
+  // Initialize the selected category when mounting the component
   useEffect(() => {
     if (categories.length > 0 && !selectedCategory) {
       setSelectedCategory(categories[0]);
@@ -218,22 +212,18 @@ const MusicCategorySelection: React.FC = () => {
     }
   }, [categories, selectedCategory]);
 
-  // Un useEffect separado SOLO para el evento game_started
   useEffect(() => {
     if (!socket) return;
 
-    console.log('🔍 Configurando listener para game_started');
+    console.log('🔍 Configuring listener for game_started');
 
     const handleGameStarted = (data) => {
-      console.log('🔍 GAME_STARTED recibido:', data);
-
-      // Restablecer banderas de navegación
+      console.log('🔍 GAME_STARTED received:', data);
       navigationInProgressRef.current = false;
       setIsStarting(false);
 
-      // Navegar si estamos en la página de categorías
       if (roomCode && window.location.pathname.includes('/categories/')) {
-        console.log(`🔍 Navegando a /game/${roomCode}`);
+        console.log(`🔍 Navigating to /game/${roomCode}`);
         navigate(`/game/${roomCode}`);
       }
     };
@@ -241,23 +231,18 @@ const MusicCategorySelection: React.FC = () => {
     socket.on('game_started', handleGameStarted);
 
     return () => {
-      console.log('🔍 Limpiando listener de game_started');
+      console.log('🔍 Clearing listener from game_started');
       socket.off('game_started', handleGameStarted);
     };
   }, [socket, roomCode, navigate]);
 
-  // Un useEffect para manejar el evento category_selection_confirmed
   useEffect(() => {
     if (!socket) return;
 
-    console.log('🔍 Configurando listener para category_selection_confirmed');
-
     const handleCategoryConfirmed = (data) => {
-      console.log('🔍 Categoría confirmada, iniciando juego:', data);
+      console.log('🔍 Category confirmed, starting game:', data);
 
       if (isHost && roomCode && data.roomCode === roomCode) {
-        // El host inicia el juego cuando recibe la confirmación
-        console.log('Host iniciando juego después de confirmación');
         handleStartGame();
       }
     };
@@ -265,7 +250,6 @@ const MusicCategorySelection: React.FC = () => {
     socket.on('category_selection_confirmed', handleCategoryConfirmed);
 
     return () => {
-      console.log('🔍 Limpiando listener de category_selection_confirmed');
       socket.off('category_selection_confirmed', handleCategoryConfirmed);
     };
   }, [socket, isHost, roomCode, handleStartGame]);
@@ -304,7 +288,7 @@ const MusicCategorySelection: React.FC = () => {
         </div>
       )}
 
-      <p className='subtitle'>Selecciona una categoría para comenzar tu quiz</p>
+      <p className='subtitle'>Select a category to start your quiz</p>
 
       <div className='categories-grid'>
         {categories.map((category, index) => (
@@ -358,7 +342,7 @@ const MusicCategorySelection: React.FC = () => {
         </motion.button>
       ) : (
         <div className='waiting-for-host'>
-          <p>Esperando a que el anfitrión inicie el juego...</p>
+          <p> Waiting for the host to start the game......</p>
           <div className='loading-dots'>
             <span></span>
             <span></span>
@@ -366,29 +350,6 @@ const MusicCategorySelection: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Panel de depuración */}
-      <div
-        className='debug-info'
-        style={{
-          marginTop: '20px',
-          padding: '10px',
-          background: 'rgba(0,0,0,0.1)',
-          borderRadius: '5px',
-          fontSize: '12px',
-        }}
-      >
-        <p>Categoría seleccionada: {selectedCategory?.name || 'Ninguna'}</p>
-        <p>
-          Índice: {selectedIndex} de {categories.length - 1}
-        </p>
-        <p>
-          Navegación en progreso:{' '}
-          {navigationInProgressRef.current ? 'Sí' : 'No'}
-        </p>
-        <p>Iniciando: {isStarting ? 'Sí' : 'No'}</p>
-        <p>Flujo correcto: QuizMainSelection → MusicCategorySelection → Quiz</p>
-      </div>
     </motion.div>
   );
 };
