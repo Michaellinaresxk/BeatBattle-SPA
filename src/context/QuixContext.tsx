@@ -355,20 +355,57 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         console.log('Player answered:', data);
 
         if (data.playerId && data.answer) {
+          // Actualizar las respuestas del jugador
           setPlayerAnswers((prev) => ({
             ...prev,
             [data.playerId]: data.answer,
           }));
+
+          // Si hay información de puntuación, actualizar también los puntajes
+          if (data.score !== undefined) {
+            // Actualizar puntuaciones para UI
+            setPlayers((prevPlayers) => {
+              return prevPlayers.map((player) => {
+                const playerId = player.id || player.playerId;
+                if (playerId && playerId === data.playerId) {
+                  console.log(
+                    `Updating player ${player.nickname} score to ${data.score}`
+                  );
+                  return {
+                    ...player,
+                    score: data.score,
+                  };
+                }
+                return player;
+              });
+            });
+          }
         }
       });
 
       socket.on('game_ended', (data) => {
-        console.log('Game ended:', data);
+        console.log('Game ended event received:', data);
         setGameStatus('ended');
-        setGameResults(data.results);
 
-        if (roomCode && navigate) {
-          navigate(`/results/${roomCode}`);
+        // Asegurarse de que los datos de resultados se almacenen correctamente
+        if (data && data.results) {
+          console.log('Game results received:', data.results);
+          setGameResults(data.results);
+
+          // Navegar a la pantalla de resultados
+          if (roomCode) {
+            navigate(`/results/${roomCode}`);
+          }
+        } else {
+          console.error('Game ended but no results data received');
+        }
+      });
+
+      socket.on('game_results', (data) => {
+        console.log('Game results received:', data);
+
+        if (data && data.results) {
+          setGameResults(data.results);
         }
       });
 
