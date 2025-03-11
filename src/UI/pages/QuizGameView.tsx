@@ -26,6 +26,7 @@ const QuizGameView: React.FC = () => {
   const [correctAnswer, setCorrectAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
+  const [playerScores, setPlayerScores] = useState<Record<string, number>>({});
 
   // Enhanced debug logging
   useEffect(() => {
@@ -36,7 +37,15 @@ const QuizGameView: React.FC = () => {
     console.log('Is array:', Array.isArray(options));
     console.log('Current players:', players);
     console.log('Player answers:', playerAnswers);
-  }, [gameStatus, currentQuestion, options, players, playerAnswers]);
+    console.log('Player scores:', playerScores);
+  }, [
+    gameStatus,
+    currentQuestion,
+    options,
+    players,
+    playerAnswers,
+    playerScores,
+  ]);
 
   // Handle game states
   useEffect(() => {
@@ -64,11 +73,6 @@ const QuizGameView: React.FC = () => {
       if (currentQuestion && currentQuestion.correctOptionId) {
         setCorrectAnswer(currentQuestion.correctOptionId);
         setShowResult(true);
-
-        // Update score if answered correctly
-        if (selectedOption === currentQuestion.correctOptionId) {
-          setScore((prevScore) => prevScore + timeRemaining * 10);
-        }
       }
     }
   }, [
@@ -82,6 +86,35 @@ const QuizGameView: React.FC = () => {
     selectedOption,
   ]);
 
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAnswerResult = (data) => {
+      if (data.correct) {
+        // Actualizar solo el puntaje local (el backend ya maneja el puntaje real)
+        setScore((prevScore) => prevScore + 1);
+      }
+    };
+
+    // Escuchar evento player_answered para actualizar las puntuaciones de todos los jugadores
+    const handlePlayerAnswered = (data) => {
+      if (data.playerId && data.score !== undefined) {
+        setPlayerScores((prev) => ({
+          ...prev,
+          [data.playerId]: data.score,
+        }));
+      }
+    };
+
+    socket.on('answer_result', handleAnswerResult);
+    socket.on('player_answered', handlePlayerAnswered);
+
+    return () => {
+      socket.off('answer_result', handleAnswerResult);
+      socket.off('player_answered', handlePlayerAnswered);
+    };
+  }, [socket]);
+
   // Listen for game_started event
   useEffect(() => {
     if (!socket) return;
@@ -94,6 +127,10 @@ const QuizGameView: React.FC = () => {
       if (typeof setGameStatus === 'function') {
         setGameStatus('playing');
       }
+
+      // Reiniciar puntuaciones cuando inicia un nuevo juego
+      setScore(0);
+      setPlayerScores({});
 
       // Siempre intentar navegar si recibimos game_started
       if (roomCode) {
@@ -109,6 +146,35 @@ const QuizGameView: React.FC = () => {
     };
   }, [socket, roomCode, navigate, setGameStatus]);
 
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAnswerResult = (data) => {
+      if (data.correct) {
+        // Actualizar solo el puntaje local (el backend ya maneja el puntaje real)
+        setScore((prevScore) => prevScore + 1);
+      }
+    };
+
+    // Escuchar evento player_answered para actualizar las puntuaciones de todos los jugadores
+    const handlePlayerAnswered = (data) => {
+      if (data.playerId && data.score !== undefined) {
+        setPlayerScores((prev) => ({
+          ...prev,
+          [data.playerId]: data.score,
+        }));
+      }
+    };
+
+    socket.on('answer_result', handleAnswerResult);
+    socket.on('player_answered', handlePlayerAnswered);
+
+    return () => {
+      socket.off('answer_result', handleAnswerResult);
+      socket.off('player_answered', handlePlayerAnswered);
+    };
+  }, [socket]);
+
   const handleSelectOption = (optionId: string) => {
     console.log('Option selected:', optionId);
     if (!hasAnswered && timeRemaining > 0) {
@@ -117,7 +183,6 @@ const QuizGameView: React.FC = () => {
       submitAnswer(optionId);
     }
   };
-
   const getOptionClassName = (optionId: string): string => {
     if (!showResult) {
       return selectedOption === optionId
@@ -134,7 +199,6 @@ const QuizGameView: React.FC = () => {
     }
   };
 
-  // Helper function to safely render options
   const renderOptions = () => {
     // If options is an array
     if (Array.isArray(options)) {
@@ -286,25 +350,33 @@ const QuizGameView: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Player answers visualization */}
+      {/* Player answers visualization with scores */}
       <div className='player-answers'>
         {players &&
-          players.map((player) => (
-            <div
-              key={player.playerId || player.id}
-              className={`player-answer ${
-                playerAnswers &&
-                (playerAnswers[player.playerId] || playerAnswers[player.id])
-                  ? 'answered'
-                  : ''
-              }`}
-            >
-              <div className='player-avatar'>
-                {player.nickname.charAt(0).toUpperCase()}
+          players.map((player) => {
+            const playerId = player.playerId || player.id;
+            const hasAnswered =
+              playerAnswers &&
+              (playerAnswers[player.playerId] || playerAnswers[player.id]);
+
+            return (
+              <div
+                key={playerId}
+                className={`player-answer ${hasAnswered ? 'answered' : ''}`}
+              >
+                <div className='player-avatar'>
+                  {player.nickname.charAt(0).toUpperCase()}
+                </div>
+                <span className='player-name'>{player.nickname}</span>
+                {/* Mostrar puntuación del jugador si está disponible */}
+                {playerScores[playerId] !== undefined && (
+                  <span className='player-score'>
+                    Score: {playerScores[playerId]}
+                  </span>
+                )}
               </div>
-              <span className='player-name'>{player.nickname}</span>
-            </div>
-          ))}
+            );
+          })}
       </div>
     </div>
   );
