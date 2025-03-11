@@ -6,11 +6,15 @@ export interface Player {
   nickname: string;
   isHost: boolean;
   score?: number;
+  correctAnswers?: number;
+  wrongAnswers?: number;
 }
 
 export interface PlayerAnswer {
   playerId: string;
   answer: string;
+  isCorrect?: boolean; // Añadir propiedad opcional para indicar si la respuesta es correcta
+  nickname?: string; // Añadir propiedad opcional para el nombre del jugador
 }
 
 export interface Question {
@@ -27,7 +31,12 @@ export interface Option {
   text: string;
 }
 
+// Actualizar la interfaz GameResults para adaptarla a lo que envía el servidor
 export interface GameResults {
-  players: Player[];
-  questions: Question[];
+  [playerId: string]: {
+    nickname: string;
+    score: number;
+    correctAnswers: number;
+    totalAnswers: number;
+  };
 }

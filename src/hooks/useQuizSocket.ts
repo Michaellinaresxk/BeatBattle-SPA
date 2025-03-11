@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { getServerUrl, getSocketOptions } from '../utils/socket.config';
+import { getServerUrl, getSocketOptions } from '../utils /socketConfig';
 import { Player, PlayerAnswer, Question } from '../types/player';
 
 export function useQuizSocket() {
@@ -198,15 +198,38 @@ export function useQuizSocket() {
 
       socket.on('player_answered', (data) => {
         console.log('Player answered:', data);
+
         if (data && data.playerId) {
+          // Actualizar las respuestas del jugador
           setPlayerAnswers((prev) => ({
             ...prev,
             [data.playerId]: {
-              nickname: data.nickname,
+              playerId: data.playerId,
               answer: data.answer,
               isCorrect: data.isCorrect,
+              nickname: data.nickname,
             },
           }));
+
+          // Actualizar también las puntuaciones en tiempo real
+          if (data.score !== undefined) {
+            console.log(
+              `Updating player ${data.nickname} score to ${data.score}`
+            );
+
+            setPlayers((prevPlayers) => {
+              return prevPlayers.map((player) => {
+                const playerId = player.id || player.playerId;
+                if (playerId === data.playerId) {
+                  return {
+                    ...player,
+                    score: data.score,
+                  };
+                }
+                return player;
+              });
+            });
+          }
         }
       });
 
@@ -236,10 +259,54 @@ export function useQuizSocket() {
       });
 
       socket.on('game_ended', (data) => {
-        console.log('Game ended:', data);
+        console.log('Game ended event received:', data);
         setGameStatus('ended');
+
+        if (data && data.results) {
+          console.log('Game results details:', {
+            resultsKeys: Object.keys(data.results),
+            playersCount: players.length,
+          });
+
+          // Actualizar gameResults con los datos recibidos
+          setGameResults(data.results);
+
+          // También actualizar los puntajes de los jugadores
+          setPlayers((prevPlayers) => {
+            return prevPlayers.map((player) => {
+              const playerId = player.id || player.playerId;
+              if (playerId && data.results[playerId]) {
+                return {
+                  ...player,
+                  score: data.results[playerId].score || 0,
+                };
+              }
+              return player;
+            });
+          });
+        } else {
+          console.warn('Game ended without results data');
+        }
+      });
+      socket.on('game_results', (data) => {
+        console.log('Game results received:', data);
+
         if (data && data.results) {
           setGameResults(data.results);
+
+          // Actualizar también los players con la información de puntuación
+          setPlayers((prevPlayers) => {
+            return prevPlayers.map((player) => {
+              const playerId = player.id || player.playerId;
+              if (playerId && data.results[playerId]) {
+                return {
+                  ...player,
+                  score: data.results[playerId].score || 0,
+                };
+              }
+              return player;
+            });
+          });
         }
       });
 
@@ -464,6 +531,16 @@ export function useQuizSocket() {
     [socket]
   );
 
+  const requestGameResults = useCallback(() => {
+    if (!socket || !roomCode) {
+      console.error('Cannot request game results: No socket or room code');
+      return;
+    }
+
+    console.log(`Requesting game results for room ${roomCode}`);
+    socket.emit('request_game_results', { roomCode });
+  }, [socket, roomCode]);
+
   return {
     socket,
     connectionError,
@@ -490,6 +567,7 @@ export function useQuizSocket() {
     selectQuizType,
     selectCategory,
     setGameStatus,
+    requestGameResults,
   };
 }
 
