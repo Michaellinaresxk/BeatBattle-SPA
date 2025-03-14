@@ -17,8 +17,8 @@ const QuizGameView: React.FC = () => {
     players,
     socket,
     setGameStatus,
-    isHost, // Asegúrate de extraer isHost del contexto
-    startGame, // Asegúrate de extraer startGame del contexto
+    isHost,
+    startGame,
   } = useQuiz();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -27,6 +27,15 @@ const QuizGameView: React.FC = () => {
   const [showResult, setShowResult] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
   const [playerScores, setPlayerScores] = useState<Record<string, number>>({});
+
+  // Add state for tracking if correct answer should be shown
+  const [shouldShowCorrectAnswer, setShouldShowCorrectAnswer] =
+    useState<boolean>(false);
+
+  // Add state to track answered players
+  const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(
+    new Set()
+  );
 
   // Enhanced debug logging
   useEffect(() => {
@@ -89,28 +98,18 @@ const QuizGameView: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    const handleAnswerResult = (data) => {
-      if (data.correct) {
-        // Actualizar solo el puntaje local (el backend ya maneja el puntaje real)
-        setScore((prevScore) => prevScore + 1);
-      }
-    };
-
-    // Escuchar evento player_answered para actualizar las puntuaciones de todos los jugadores
     const handlePlayerAnswered = (data) => {
-      if (data.playerId && data.score !== undefined) {
-        setPlayerScores((prev) => ({
-          ...prev,
-          [data.playerId]: data.score,
-        }));
-      }
+      // Just track that this player has answered (don't show correct answer yet)
+      setAnsweredPlayers((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(data.playerId);
+        return newSet;
+      });
     };
 
-    socket.on('answer_result', handleAnswerResult);
     socket.on('player_answered', handlePlayerAnswered);
 
     return () => {
-      socket.off('answer_result', handleAnswerResult);
       socket.off('player_answered', handlePlayerAnswered);
     };
   }, [socket]);
@@ -175,6 +174,33 @@ const QuizGameView: React.FC = () => {
     };
   }, [socket]);
 
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleQuestionEnded = (data) => {
+      console.log('Question ended event received:', data);
+
+      if (data && data.correctAnswer) {
+        setCorrectAnswer(data.correctAnswer);
+        setShouldShowCorrectAnswer(true);
+      }
+    };
+
+    socket.on('question_ended', handleQuestionEnded);
+
+    return () => {
+      socket.off('question_ended', handleQuestionEnded);
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (currentQuestion) {
+      setShouldShowCorrectAnswer(false);
+      setAnsweredPlayers(new Set());
+      setSelectedOption(null);
+    }
+  }, [currentQuestion]);
+
   const handleSelectOption = (optionId: string) => {
     console.log('Option selected:', optionId);
     if (!hasAnswered && timeRemaining > 0) {
@@ -184,18 +210,31 @@ const QuizGameView: React.FC = () => {
     }
   };
   const getOptionClassName = (optionId: string): string => {
-    if (!showResult) {
-      return selectedOption === optionId
-        ? 'quiz-option selected'
-        : 'quiz-option';
-    } else {
-      if (optionId === correctAnswer) {
-        return 'quiz-option correct';
-      } else if (selectedOption === optionId) {
-        return 'quiz-option incorrect';
-      } else {
-        return 'quiz-option';
+    // Si el jugador seleccionó esta opción, márquela como seleccionada
+    if (selectedOption === optionId) {
+      // Si aún NO debemos mostrar la respuesta correcta, solo marcarla como seleccionada
+      if (!shouldShowCorrectAnswer) {
+        return 'quiz-option selected';
       }
+      // Si ya debemos mostrar la respuesta correcta
+      else {
+        // Si es la opción correcta
+        if (optionId === correctAnswer) {
+          return 'quiz-option correct';
+        }
+        // Si NO es la correcta pero fue la seleccionada
+        else {
+          return 'quiz-option incorrect';
+        }
+      }
+    }
+    // Si esta opción es la correcta y debemos mostrar la respuesta correcta
+    else if (optionId === correctAnswer && shouldShowCorrectAnswer) {
+      return 'quiz-option correct';
+    }
+    // Opción normal sin seleccionar
+    else {
+      return 'quiz-option';
     }
   };
 
@@ -312,7 +351,7 @@ const QuizGameView: React.FC = () => {
 
       {/* Results overlay when answer is revealed */}
       <AnimatePresence>
-        {showResult && (
+        {shouldShowCorrectAnswer && (
           <motion.div
             className='results-overlay'
             initial={{ opacity: 0 }}
@@ -328,8 +367,8 @@ const QuizGameView: React.FC = () => {
               </h3>
               <p>The correct answer was:</p>
               <div className='correct-answer'>
+                {/* Display correct answer here as you did before */}
                 {(() => {
-                  // Find correct answer text
                   if (Array.isArray(options)) {
                     const correctOption = options.find(
                       (opt) => opt.id === correctAnswer
@@ -355,20 +394,20 @@ const QuizGameView: React.FC = () => {
         {players &&
           players.map((player) => {
             const playerId = player.playerId || player.id;
-            const hasAnswered =
-              playerAnswers &&
-              (playerAnswers[player.playerId] || playerAnswers[player.id]);
+            // Check if this player has answered using our local state
+            const hasPlayerAnswered = answeredPlayers.has(playerId);
 
             return (
               <div
                 key={playerId}
-                className={`player-answer ${hasAnswered ? 'answered' : ''}`}
+                className={`player-answer ${
+                  hasPlayerAnswered ? 'answered' : ''
+                }`}
               >
                 <div className='player-avatar'>
                   {player.nickname.charAt(0).toUpperCase()}
                 </div>
                 <span className='player-name'>{player.nickname}</span>
-                {/* Mostrar puntuación del jugador si está disponible */}
                 {playerScores[playerId] !== undefined && (
                   <span className='player-score'>
                     Score: {playerScores[playerId]}
