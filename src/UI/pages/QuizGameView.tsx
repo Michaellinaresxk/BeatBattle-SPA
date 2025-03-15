@@ -17,87 +17,50 @@ const QuizGameView: React.FC = () => {
     players,
     socket,
     setGameStatus,
-    isHost, // Asegúrate de extraer isHost del contexto
-    startGame, // Asegúrate de extraer startGame del contexto
   } = useQuiz();
 
+  // Estados locales
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState<boolean>(false);
   const [correctAnswer, setCorrectAnswer] = useState<string | null>(null);
-  const [showResult, setShowResult] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
   const [playerScores, setPlayerScores] = useState<Record<string, number>>({});
+  const [shouldShowCorrectAnswer, setShouldShowCorrectAnswer] =
+    useState<boolean>(false);
+  const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(
+    new Set()
+  );
 
-  // Enhanced debug logging
+  // Manejar estados del juego
   useEffect(() => {
-    console.log('Current game status:', gameStatus);
-    console.log('Current question:', currentQuestion);
-    console.log('Options:', options);
-    console.log('Options type:', typeof options);
-    console.log('Is array:', Array.isArray(options));
-    console.log('Current players:', players);
-    console.log('Player answers:', playerAnswers);
-    console.log('Player scores:', playerScores);
-  }, [
-    gameStatus,
-    currentQuestion,
-    options,
-    players,
-    playerAnswers,
-    playerScores,
-  ]);
-
-  // Handle game states
-  useEffect(() => {
+    // Navegar a resultados cuando termina el juego
     if (gameStatus === 'ended' && roomCode) {
       navigate(`/results/${roomCode}`);
     }
 
-    // Reset answer state when new question comes
+    // Resetear estados cuando llega una nueva pregunta
     if (currentQuestion && currentQuestion.id) {
       setSelectedOption(null);
       setHasAnswered(false);
-      setShowResult(false);
-      // Store correctAnswer from question data
+      setShouldShowCorrectAnswer(false);
       setCorrectAnswer(currentQuestion.correctOptionId || null);
+      setAnsweredPlayers(new Set());
     }
+  }, [currentQuestion, gameStatus, navigate, roomCode]);
 
-    // Check if playerAnswers and players are valid before comparing lengths
-    const allPlayersAnswered =
-      playerAnswers &&
-      players &&
-      Object.keys(playerAnswers).length === players.length;
-
-    // Show correct answer after all players answered or time is up
-    if (allPlayersAnswered || timeRemaining === 0) {
-      if (currentQuestion && currentQuestion.correctOptionId) {
-        setCorrectAnswer(currentQuestion.correctOptionId);
-        setShowResult(true);
-      }
-    }
-  }, [
-    currentQuestion,
-    playerAnswers,
-    timeRemaining,
-    gameStatus,
-    players,
-    navigate,
-    roomCode,
-    selectedOption,
-  ]);
-
+  // Escuchar eventos de respuestas de jugadores
   useEffect(() => {
     if (!socket) return;
 
-    const handleAnswerResult = (data) => {
-      if (data.correct) {
-        // Actualizar solo el puntaje local (el backend ya maneja el puntaje real)
-        setScore((prevScore) => prevScore + 1);
-      }
-    };
-
-    // Escuchar evento player_answered para actualizar las puntuaciones de todos los jugadores
     const handlePlayerAnswered = (data) => {
+      // Seguir qué jugadores han respondido
+      setAnsweredPlayers((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(data.playerId);
+        return newSet;
+      });
+
+      // Actualizar puntuaciones en tiempo real
       if (data.playerId && data.score !== undefined) {
         setPlayerScores((prev) => ({
           ...prev,
@@ -106,101 +69,79 @@ const QuizGameView: React.FC = () => {
       }
     };
 
-    socket.on('answer_result', handleAnswerResult);
-    socket.on('player_answered', handlePlayerAnswered);
-
-    return () => {
-      socket.off('answer_result', handleAnswerResult);
-      socket.off('player_answered', handlePlayerAnswered);
+    const handleAnswerResult = (data) => {
+      if (data.correct) {
+        setScore((prevScore) => prevScore + 1);
+      }
     };
-  }, [socket]);
 
-  // Listen for game_started event
-  useEffect(() => {
-    if (!socket) return;
-
-    console.log('💻 Configurando eventos del juego en QuizGameView');
+    const handleQuestionEnded = (data) => {
+      if (data && data.correctAnswer) {
+        setCorrectAnswer(data.correctAnswer);
+        setShouldShowCorrectAnswer(true);
+      }
+    };
 
     const handleGameStarted = (data) => {
-      console.log('🎮 Game started event received in QuizGameView:', data);
-
       if (typeof setGameStatus === 'function') {
         setGameStatus('playing');
       }
 
-      // Reiniciar puntuaciones cuando inicia un nuevo juego
       setScore(0);
       setPlayerScores({});
 
-      // Siempre intentar navegar si recibimos game_started
       if (roomCode) {
-        console.log(`Navegando a /game/${roomCode} desde QuizGameView`);
         navigate(`/game/${roomCode}`);
       }
     };
 
+    // Registrar listeners
+    socket.on('player_answered', handlePlayerAnswered);
+    socket.on('answer_result', handleAnswerResult);
+    socket.on('question_ended', handleQuestionEnded);
     socket.on('game_started', handleGameStarted);
 
+    // Limpiar listeners
     return () => {
+      socket.off('player_answered', handlePlayerAnswered);
+      socket.off('answer_result', handleAnswerResult);
+      socket.off('question_ended', handleQuestionEnded);
       socket.off('game_started', handleGameStarted);
     };
   }, [socket, roomCode, navigate, setGameStatus]);
 
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleAnswerResult = (data) => {
-      if (data.correct) {
-        // Actualizar solo el puntaje local (el backend ya maneja el puntaje real)
-        setScore((prevScore) => prevScore + 1);
-      }
-    };
-
-    // Escuchar evento player_answered para actualizar las puntuaciones de todos los jugadores
-    const handlePlayerAnswered = (data) => {
-      if (data.playerId && data.score !== undefined) {
-        setPlayerScores((prev) => ({
-          ...prev,
-          [data.playerId]: data.score,
-        }));
-      }
-    };
-
-    socket.on('answer_result', handleAnswerResult);
-    socket.on('player_answered', handlePlayerAnswered);
-
-    return () => {
-      socket.off('answer_result', handleAnswerResult);
-      socket.off('player_answered', handlePlayerAnswered);
-    };
-  }, [socket]);
-
+  // Manejar selección de opción
   const handleSelectOption = (optionId: string) => {
-    console.log('Option selected:', optionId);
     if (!hasAnswered && timeRemaining > 0) {
       setSelectedOption(optionId);
       setHasAnswered(true);
       submitAnswer(optionId);
     }
   };
+
+  // Determinar clase CSS para cada opción
   const getOptionClassName = (optionId: string): string => {
-    if (!showResult) {
-      return selectedOption === optionId
-        ? 'quiz-option selected'
-        : 'quiz-option';
-    } else {
-      if (optionId === correctAnswer) {
-        return 'quiz-option correct';
-      } else if (selectedOption === optionId) {
-        return 'quiz-option incorrect';
-      } else {
-        return 'quiz-option';
-      }
+    const isSelected = selectedOption === optionId;
+    const isCorrect = optionId === correctAnswer;
+
+    if (!shouldShowCorrectAnswer) {
+      return isSelected ? 'quiz-option selected' : 'quiz-option';
     }
+
+    if (isCorrect) {
+      return 'quiz-option correct';
+    }
+
+    if (isSelected && !isCorrect) {
+      return 'quiz-option incorrect';
+    }
+
+    return 'quiz-option';
   };
 
+  // Renderizar opciones de respuesta
   const renderOptions = () => {
-    // If options is an array
+    // Para opciones en formato array
     if (Array.isArray(options)) {
       return options.map((option: Option, index: number) => (
         <motion.div
@@ -218,7 +159,7 @@ const QuizGameView: React.FC = () => {
         </motion.div>
       ));
     }
-    // If options is an object
+    // Para opciones en formato objeto
     else if (options && typeof options === 'object') {
       return Object.entries(options).map(([key, value], index) => (
         <motion.div
@@ -236,12 +177,11 @@ const QuizGameView: React.FC = () => {
         </motion.div>
       ));
     }
-    // Fallback for no options
-    else {
-      return <div className='error-message'>Waiting for options...</div>;
-    }
+
+    return <div className='error-message'>Waiting for options...</div>;
   };
 
+  // Pantalla de carga si no hay pregunta
   if (!currentQuestion) {
     return (
       <div className='quiz-loading'>
@@ -250,6 +190,17 @@ const QuizGameView: React.FC = () => {
       </div>
     );
   }
+
+  // Obtener el texto de la respuesta correcta para mostrar
+  const getCorrectAnswerText = () => {
+    if (Array.isArray(options)) {
+      const correctOption = options.find((opt) => opt.id === correctAnswer);
+      return correctOption ? correctOption.text : 'Unknown';
+    } else if (options && typeof options === 'object' && correctAnswer) {
+      return options[correctAnswer] || 'Unknown';
+    }
+    return 'Unknown';
+  };
 
   return (
     <div className='quiz-game-container'>
@@ -294,7 +245,7 @@ const QuizGameView: React.FC = () => {
       >
         <h2 className='question-title'>{currentQuestion.question}</h2>
 
-        {/* Song player if available */}
+        {/* Audio player if available */}
         {currentQuestion.audioUrl && (
           <div className='audio-player'>
             <audio controls autoPlay>
@@ -305,14 +256,14 @@ const QuizGameView: React.FC = () => {
         )}
       </motion.div>
 
-      {/* Options grid - using the renderOptions function */}
+      {/* Options grid */}
       <div className='options-container'>
         <AnimatePresence>{renderOptions()}</AnimatePresence>
       </div>
 
       {/* Results overlay when answer is revealed */}
       <AnimatePresence>
-        {showResult && (
+        {shouldShowCorrectAnswer && (
           <motion.div
             className='results-overlay'
             initial={{ opacity: 0 }}
@@ -327,48 +278,30 @@ const QuizGameView: React.FC = () => {
                   : 'Not quite right...'}
               </h3>
               <p>The correct answer was:</p>
-              <div className='correct-answer'>
-                {(() => {
-                  // Find correct answer text
-                  if (Array.isArray(options)) {
-                    const correctOption = options.find(
-                      (opt) => opt.id === correctAnswer
-                    );
-                    return correctOption ? correctOption.text : 'Unknown';
-                  } else if (
-                    options &&
-                    typeof options === 'object' &&
-                    correctAnswer
-                  ) {
-                    return options[correctAnswer] || 'Unknown';
-                  }
-                  return 'Unknown';
-                })()}
-              </div>
+              <div className='correct-answer'>{getCorrectAnswerText()}</div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Player answers visualization with scores */}
+      {/* Player answers visualization */}
       <div className='player-answers'>
         {players &&
           players.map((player) => {
             const playerId = player.playerId || player.id;
-            const hasAnswered =
-              playerAnswers &&
-              (playerAnswers[player.playerId] || playerAnswers[player.id]);
+            const hasPlayerAnswered = answeredPlayers.has(playerId);
 
             return (
               <div
                 key={playerId}
-                className={`player-answer ${hasAnswered ? 'answered' : ''}`}
+                className={`player-answer ${
+                  hasPlayerAnswered ? 'answered' : ''
+                }`}
               >
                 <div className='player-avatar'>
                   {player.nickname.charAt(0).toUpperCase()}
                 </div>
                 <span className='player-name'>{player.nickname}</span>
-                {/* Mostrar puntuación del jugador si está disponible */}
                 {playerScores[playerId] !== undefined && (
                   <span className='player-score'>
                     Score: {playerScores[playerId]}
