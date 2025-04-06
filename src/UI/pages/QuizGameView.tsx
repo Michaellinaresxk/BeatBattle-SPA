@@ -19,7 +19,6 @@ const QuizGameView: React.FC = () => {
     setGameStatus,
   } = useQuiz();
 
-  // Estados locales
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState<boolean>(false);
   const [correctAnswer, setCorrectAnswer] = useState<string | null>(null);
@@ -31,14 +30,11 @@ const QuizGameView: React.FC = () => {
     new Set()
   );
 
-  // Manejar estados del juego
   useEffect(() => {
-    // Navegar a resultados cuando termina el juego
     if (gameStatus === 'ended' && roomCode) {
       navigate(`/results/${roomCode}`);
     }
 
-    // Resetear estados cuando llega una nueva pregunta
     if (currentQuestion && currentQuestion.id) {
       setSelectedOption(null);
       setHasAnswered(false);
@@ -48,19 +44,16 @@ const QuizGameView: React.FC = () => {
     }
   }, [currentQuestion, gameStatus, navigate, roomCode]);
 
-  // Escuchar eventos de respuestas de jugadores
   useEffect(() => {
     if (!socket) return;
 
     const handlePlayerAnswered = (data) => {
-      // Seguir qué jugadores han respondido
       setAnsweredPlayers((prev) => {
         const newSet = new Set(prev);
         newSet.add(data.playerId);
         return newSet;
       });
 
-      // Actualizar puntuaciones en tiempo real
       if (data.playerId && data.score !== undefined) {
         setPlayerScores((prev) => ({
           ...prev,
@@ -95,13 +88,11 @@ const QuizGameView: React.FC = () => {
       }
     };
 
-    // Registrar listeners
     socket.on('player_answered', handlePlayerAnswered);
     socket.on('answer_result', handleAnswerResult);
     socket.on('question_ended', handleQuestionEnded);
     socket.on('game_started', handleGameStarted);
 
-    // Limpiar listeners
     return () => {
       socket.off('player_answered', handlePlayerAnswered);
       socket.off('answer_result', handleAnswerResult);
@@ -110,7 +101,6 @@ const QuizGameView: React.FC = () => {
     };
   }, [socket, roomCode, navigate, setGameStatus]);
 
-  // Manejar selección de opción
   const handleSelectOption = (optionId: string) => {
     if (!hasAnswered && timeRemaining > 0) {
       setSelectedOption(optionId);
@@ -119,7 +109,6 @@ const QuizGameView: React.FC = () => {
     }
   };
 
-  // Determinar clase CSS para cada opción
   const getOptionClassName = (optionId: string): string => {
     const isSelected = selectedOption === optionId;
     const isCorrect = optionId === correctAnswer;
@@ -139,9 +128,8 @@ const QuizGameView: React.FC = () => {
     return 'quiz-option';
   };
 
-  // Renderizar opciones de respuesta
   const renderOptions = () => {
-    // Para opciones en formato array
+    // For options in array format
     if (Array.isArray(options)) {
       return options.map((option: Option, index: number) => (
         <motion.div
@@ -159,7 +147,7 @@ const QuizGameView: React.FC = () => {
         </motion.div>
       ));
     }
-    // Para opciones en formato objeto
+    // For options in object format
     else if (options && typeof options === 'object') {
       return Object.entries(options).map(([key, value], index) => (
         <motion.div
@@ -181,7 +169,7 @@ const QuizGameView: React.FC = () => {
     return <div className='error-message'>Waiting for options...</div>;
   };
 
-  // Pantalla de carga si no hay pregunta
+  // Loading screen if no question
   if (!currentQuestion) {
     return (
       <div className='quiz-loading'>
@@ -191,7 +179,6 @@ const QuizGameView: React.FC = () => {
     );
   }
 
-  // Obtener el texto de la respuesta correcta para mostrar
   const getCorrectAnswerText = () => {
     if (Array.isArray(options)) {
       const correctOption = options.find((opt) => opt.id === correctAnswer);

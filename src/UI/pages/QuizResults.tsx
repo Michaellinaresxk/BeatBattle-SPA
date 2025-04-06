@@ -17,14 +17,7 @@ const QuizResults: React.FC = () => {
 
   // Request game results when component mounts
   useEffect(() => {
-    console.log('QuizResults component mounted');
-    console.log('Room code:', roomCode);
-    console.log('Initial game results:', gameResults);
-    console.log('Players:', players);
-
     if (socket && roomCode) {
-      console.log('Requesting game results for room:', roomCode);
-      // Use the requestGameResults function from context if available
       if (typeof requestGameResults === 'function') {
         requestGameResults();
       } else {
@@ -32,8 +25,6 @@ const QuizResults: React.FC = () => {
         socket.emit('request_game_results', { roomCode });
       }
     }
-
-    // Set a timeout to stop showing loading state even if results don't arrive
     const timeout = setTimeout(() => {
       setIsLoading(false);
     }, 3000);
@@ -47,7 +38,6 @@ const QuizResults: React.FC = () => {
 
     setIsLoading(false);
 
-    // Create a combined array of player results
     const resultsArray = [];
 
     // First add all players from the gameResults
@@ -94,8 +84,6 @@ const QuizResults: React.FC = () => {
         }
       });
     }
-
-    // Sort by score (highest first)
     const sorted = [...resultsArray].sort((a, b) => b.score - a.score);
     console.log('Sorted results:', sorted);
     setSortedResults(sorted);
