@@ -33,7 +33,6 @@ const MusicCategorySelection: React.FC = () => {
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isStarting, setIsStarting] = useState(false);
-  // Flag para prevenir múltiples navegaciones
   const navigationInProgressRef = useRef(false);
 
   // Get categories based on type parameter
@@ -43,15 +42,11 @@ const MusicCategorySelection: React.FC = () => {
 
   // Get title based on category type
   const title = CATEGORY_TYPE_TITLES[actualCategoryType] || 'Choose a Category';
-
-  // Define the handling functions with useCallback
   const handleCategorySelect = useCallback(
     (category: Category, index: number) => {
-      console.log(`Seleccionando categoría: ${category.id} en índice ${index}`);
+      console.log(`Selecting category: ${category.id} in index ${index}`);
       setSelectedCategory(category);
       setSelectedIndex(index);
-
-      // Enviar la categoría seleccionada al servidor
       if (roomCode) {
         selectCategory(roomCode, category.id);
       }
@@ -74,7 +69,7 @@ const MusicCategorySelection: React.FC = () => {
       navigationInProgressRef.current ||
       isStarting
     ) {
-      console.log('No se puede iniciar el juego:', {
+      console.log('Unable to start the game:', {
         hasCategory: !!selectedCategory,
         hasRoomCode: !!roomCode,
         navigationInProgress: navigationInProgressRef.current,
@@ -82,29 +77,22 @@ const MusicCategorySelection: React.FC = () => {
       });
       return;
     }
-
-    // Marcar la navegación en progreso
     navigationInProgressRef.current = true;
     setIsStarting(true);
 
-    console.log('🚀 Iniciando juego con:', {
+    console.log('🚀 Starting the game with:', {
       roomCode,
       categoryId: selectedCategory.id,
       categoryType: actualCategoryType,
     });
 
-    // Actualizar categoría en la sala
     updateRoomCategory(roomCode, actualCategoryType, selectedCategory.id);
 
-    // Iniciar el juego con la categoría seleccionada
     startGame(roomCode, selectedCategory.id, actualCategoryType);
 
-    // Timeout de seguridad: Restablecer las banderas después de 5 segundos si no hay navegación
     setTimeout(() => {
       if (navigationInProgressRef.current) {
-        console.log(
-          '⚠️ Restableciendo banderas de navegación por timeout de seguridad'
-        );
+        console.log('⚠️ Resetting navigation flags due to security timeout');
         navigationInProgressRef.current = false;
         setIsStarting(false);
       }
@@ -126,7 +114,6 @@ const MusicCategorySelection: React.FC = () => {
 
       if (!direction) return;
 
-      // Calculate the new index based on address
       let newIndex = selectedIndex;
 
       if (direction === 'right') {
@@ -134,14 +121,11 @@ const MusicCategorySelection: React.FC = () => {
       } else if (direction === 'left') {
         newIndex = (selectedIndex - 1 + categories.length) % categories.length;
       } else if (direction === 'down') {
-        // Advance 3 positions or go to the end
         newIndex = Math.min(selectedIndex + 3, categories.length - 1);
       } else if (direction === 'up') {
-        // Go back 3 positions or go to the beginning
         newIndex = Math.max(selectedIndex - 3, 0);
       }
 
-      // Update the selection if the index changed
       if (newIndex !== selectedIndex && categories[newIndex]) {
         handleCategorySelect(categories[newIndex], newIndex);
       }
@@ -279,12 +263,6 @@ const MusicCategorySelection: React.FC = () => {
             Código de sala: <span>{roomCode}</span>
           </p>
           <p className='players-count'>Jugadores: {players.length}</p>
-          {/* Información de depuración */}
-          <p className='controller-status'>
-            Controlador: {socket ? '✅ Conectado' : '❌ No conectado'}
-          </p>
-          <p className='host-status'>Host: {isHost ? '✅ Sí' : '❌ No'}</p>
-          <p className='game-status'>Game Status: {gameStatus}</p>
         </div>
       )}
 
@@ -333,10 +311,8 @@ const MusicCategorySelection: React.FC = () => {
               Iniciando juego...
             </>
           ) : (
-            `Iniciar Juego con ${
-              selectedCategory
-                ? selectedCategory.name
-                : 'categoría seleccionada'
+            ` Start Game with ${
+              selectedCategory ? selectedCategory.name : 'selected category'
             }`
           )}
         </motion.button>

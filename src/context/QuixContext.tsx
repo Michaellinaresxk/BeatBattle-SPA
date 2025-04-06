@@ -49,7 +49,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
     setIsConnecting(true);
 
     try {
-      // Crear una nueva instancia de socket
       const newSocket = io(SERVER_URL, {
         transports: ['websocket'],
         forceNew: true,
@@ -60,56 +59,52 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         path: '/socket.io',
       });
 
-      // Registrar eventos de conexión
       newSocket.on('connect', () => {
-        console.log('✅ Conectado al servidor Socket.IO:', {
+        console.log('✅ Connected to Socket.IO server:', {
           id: newSocket.id,
           connected: newSocket.connected,
           transport: newSocket.io.engine.transport.name,
         });
         setConnectionError(null);
         setSocket(newSocket);
-        setSocketReady(true); // Marcar el socket como listo
+        setSocketReady(true);
         setIsConnecting(false);
       });
 
       newSocket.on('connect_error', (error) => {
-        console.error('❌ Error de conexión socket:', error);
+        console.error('❌ Socket connection error:', error);
         setConnectionError(
-          `Error de conexión: ${error.message || 'Error desconocido'}`
+          `Connection error: ${error.message || 'Unknown error'}`
         );
         setSocketReady(false);
         setIsConnecting(false);
       });
 
       newSocket.on('disconnect', (reason) => {
-        console.warn('🔌 Socket desconectado:', reason);
+        console.warn('🔌 Socket disconnected::', reason);
         setSocketReady(false);
 
         if (reason === 'io server disconnect') {
-          // Intento de reconexión manual si el servidor nos desconectó
           setTimeout(() => {
-            console.log('Intentando reconectar...');
+            console.log('Trying to reconnect...');
             newSocket.connect();
           }, 1000);
         }
       });
 
-      // Registrar manejadores de eventos (estos permanecen aunque el socket se reconecte)
       setupEventListeners(newSocket);
 
-      // Función de limpieza
       return () => {
-        console.log('Limpiando socket en desmontaje de provider');
+        console.log('Cleaning socket in disassembly of provider');
         if (newSocket) {
           newSocket.disconnect();
         }
       };
     } catch (error) {
-      console.error('Error al inicializar socket:', error);
+      console.error('Error initializing socket:', error);
       setConnectionError(
-        `Error de inicialización: ${
-          error instanceof Error ? error.message : 'Error desconocido'
+        `  Initialization erro: ${
+          error instanceof Error ? error.message : 'Unknown error'
         }`
       );
       setIsConnecting(false);
@@ -167,7 +162,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       socket.on('send_controller_command', (data) => {
-        console.log('🖥️ Comando de controlador recibido en context:', data);
+        console.log('🖥️ Controller command received in context:', data);
         socket.emit('controller_command_internal', data);
 
         if (data.action === 'navigate' && data.screen) {
@@ -355,15 +350,12 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         console.log('Player answered:', data);
 
         if (data.playerId && data.answer) {
-          // Actualizar las respuestas del jugador
           setPlayerAnswers((prev) => ({
             ...prev,
             [data.playerId]: data.answer,
           }));
 
-          // Si hay información de puntuación, actualizar también los puntajes
           if (data.score !== undefined) {
-            // Actualizar puntuaciones para UI
             setPlayers((prevPlayers) => {
               return prevPlayers.map((player) => {
                 const playerId = player.id || player.playerId;
@@ -387,12 +379,10 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({
         console.log('Game ended event received:', data);
         setGameStatus('ended');
 
-        // Asegurarse de que los datos de resultados se almacenen correctamente
         if (data && data.results) {
           console.log('Game results received:', data.results);
           setGameResults(data.results);
 
-          // Navegar a la pantalla de resultados
           if (roomCode) {
             navigate(`/results/${roomCode}`);
           }

@@ -47,7 +47,6 @@ const QuizDisplay: React.FC = () => {
     }
   }, [gameStatus, navigate, roomCode]);
 
-  // Listen specifically for game_started event
   useEffect(() => {
     if (!socket) return;
 
@@ -90,7 +89,6 @@ const QuizDisplay: React.FC = () => {
     navigate('/quiz-selection');
   };
 
-  // Display connection error
   if (connectionError) {
     return (
       <motion.div
@@ -113,7 +111,6 @@ const QuizDisplay: React.FC = () => {
     );
   }
 
-  // Display setup screen (Join or Create Quiz)
   if (gameState === 'setup') {
     return (
       <motion.div
@@ -184,7 +181,6 @@ const QuizDisplay: React.FC = () => {
     );
   }
 
-  // Display join screen (enter nickname for URL room code)
   if (gameState === 'joining') {
     return (
       <motion.div

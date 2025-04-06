@@ -26,7 +26,6 @@ export interface QuizContextType {
   gameResults: any | null;
 
   currentScreen: string;
-  // Methods
   createRoom: (category: Category, nickname?: string) => void;
   joinRoom: (roomCode: string, nickname: string) => void;
   leaveRoom: () => void;

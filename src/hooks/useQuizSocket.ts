@@ -30,7 +30,6 @@ export function useQuizSocket() {
   const MAX_RETRY_ATTEMPTS = 3;
   const [currentScreen, setCurrentScreen] = useState<string>('waiting');
 
-  // Function to establish socket connection
   const connectSocket = useCallback(() => {
     if (connectionAttempts >= MAX_RETRY_ATTEMPTS) {
       setConnectionError(
@@ -200,7 +199,6 @@ export function useQuizSocket() {
         console.log('Player answered:', data);
 
         if (data && data.playerId) {
-          // Actualizar las respuestas del jugador
           setPlayerAnswers((prev) => ({
             ...prev,
             [data.playerId]: {
@@ -211,7 +209,6 @@ export function useQuizSocket() {
             },
           }));
 
-          // Actualizar también las puntuaciones en tiempo real
           if (data.score !== undefined) {
             console.log(
               `Updating player ${data.nickname} score to ${data.score}`
@@ -268,10 +265,8 @@ export function useQuizSocket() {
             playersCount: players.length,
           });
 
-          // Actualizar gameResults con los datos recibidos
           setGameResults(data.results);
 
-          // También actualizar los puntajes de los jugadores
           setPlayers((prevPlayers) => {
             return prevPlayers.map((player) => {
               const playerId = player.id || player.playerId;
@@ -294,7 +289,6 @@ export function useQuizSocket() {
         if (data && data.results) {
           setGameResults(data.results);
 
-          // Actualizar también los players con la información de puntuación
           setPlayers((prevPlayers) => {
             return prevPlayers.map((player) => {
               const playerId = player.id || player.playerId;

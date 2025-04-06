@@ -1,4 +1,9 @@
-export type GameStatus = 'setup' | 'waiting' | 'playing' | 'ended';
+export type GameStatus =
+  | 'setup'
+  | 'waiting'
+  | 'selection'
+  | 'playing'
+  | 'ended';
 
 export interface Player {
   id: string;
@@ -13,8 +18,8 @@ export interface Player {
 export interface PlayerAnswer {
   playerId: string;
   answer: string;
-  isCorrect?: boolean; // Añadir propiedad opcional para indicar si la respuesta es correcta
-  nickname?: string; // Añadir propiedad opcional para el nombre del jugador
+  isCorrect?: boolean;
+  nickname?: string;
 }
 
 export interface Question {

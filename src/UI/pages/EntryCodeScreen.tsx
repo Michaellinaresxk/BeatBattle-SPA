@@ -49,9 +49,6 @@ const EntryCodeScreen = () => {
 
   useEffect(() => {
     if (gameStatus === 'selection' && roomCode) {
-      console.log(
-        `✅ Estado del juego cambiado a 'selection', navegando a /selection/${roomCode}`
-      );
       navigate(`/selection/${roomCode}`);
     } else if (gameStatus === 'playing' && roomCode) {
       const currentPath = window.location.pathname;
@@ -61,9 +58,6 @@ const EntryCodeScreen = () => {
         !currentPath.includes('/selection/') &&
         !currentPath.includes('/categories/')
       ) {
-        console.log(
-          `⚠️ Estado del juego es 'playing' pero no hemos seleccionado, redirigiendo a selección`
-        );
         navigate(`/selection/${roomCode}`);
       }
     }
@@ -89,7 +83,9 @@ const EntryCodeScreen = () => {
       console.log('📱 Controller joined event in EntryCodeScreen:', data);
 
       if (isHost) {
-        console.log('🔔 Controlador conectado y somos host, destacando botón');
+        console.log(
+          '🔔 Controller connected and we are host, highlighting button'
+        );
         setHasNewController(true);
       }
     };
@@ -101,56 +97,56 @@ const EntryCodeScreen = () => {
     };
   }, [socket, isHost]);
 
-  // Función para copiar el código al portapapeles
   const handleCopyCode = () => {
     if (roomCode) {
       navigator.clipboard
         .writeText(roomCode)
         .then(() => {
-          console.log('Código copiado al portapapeles');
+          console.log('Code copied to clipboard');
         })
         .catch((err) => {
-          console.error('Error al copiar:', err);
+          console.error('Error while copying:', err);
         });
     }
   };
 
-  // Mostrar estado de conexión del socket
   const renderSocketStatus = () => {
     if (isConnecting) {
       return (
-        <p className='socket-status connecting'>Conectando al servidor...</p>
+        <p className='socket-status connecting'>Connecting to the server...</p>
       );
     } else if (socketReady) {
-      return <p className='socket-status connected'>Conectado al servidor</p>;
+      return (
+        <p className='socket-status connected'>Connecting to the server...</p>
+      );
     } else {
       return (
-        <p className='socket-status disconnected'>Desconectado del servidor</p>
+        <p className='socket-status disconnected'>
+          Connecting to the server...
+        </p>
       );
     }
   };
 
-  // Mostrar pantalla de carga mientras se solicita el código
   if (isLoading) {
     return (
       <div className='loading-screen'>
         <div className='loading-spinner'></div>
         {isConnecting ? (
-          <p>Conectando al servidor...</p>
+          <p>Connecting to the server...</p>
         ) : socketReady ? (
-          <p>Generando código de sala...</p>
+          <p>Generating room code...</p>
         ) : (
-          <p>Esperando conexión...</p>
+          <p>Waiting for connection...</p>
         )}
       </div>
     );
   }
 
-  // Mostrar mensaje de error si ocurrió algún problema
   if (error) {
     return (
       <div className='error-screen'>
-        <h2>Error de conexión</h2>
+        <h2>Connection error</h2>
         <p>{error}</p>
         <button
           className='retry-button'
@@ -162,7 +158,6 @@ const EntryCodeScreen = () => {
     );
   }
 
-  // Mostrar el código de sala una vez generado
   return (
     <div className='waiting-room'>
       <motion.div
@@ -171,13 +166,12 @@ const EntryCodeScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className='title'>Sala Creada Exitosamente</h1>
+        <h1 className='title'>Successfully Created Room</h1>
 
-        {/* Mostrar estado de la conexión */}
         {renderSocketStatus()}
 
         <div className='room-code'>
-          <h2 className='subtitle'>Código de Sala</h2>
+          <h2 className='subtitle'>Room Code</h2>
           <h2 className='code-display'>{roomCode}</h2>
           <motion.button
             className='copy-button'
@@ -185,11 +179,9 @@ const EntryCodeScreen = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Copiar Código
+            Copy Code
           </motion.button>
-          <p>
-            Comparte este código con tus amigos para que se unan a la partida
-          </p>
+          <p>Share this code with your friends to join the game</p>
         </div>
 
         <div className='players-list'>

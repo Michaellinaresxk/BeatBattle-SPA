@@ -14,24 +14,21 @@ const QuizMainSelection: React.FC = () => {
     useQuiz();
 
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
-  // Para prevenir múltiples navegaciones
   const navigationInProgressRef = useRef(false);
 
   const handleContinue = useCallback(() => {
     if (!roomCode || navigationInProgressRef.current) return;
 
-    // Marcar que hay una navegación en progreso
     navigationInProgressRef.current = true;
 
     const selectedCategory = mainCategories[selectedCategoryIndex];
     if (selectedCategory) {
       console.log(`Seleccionando tipo de quiz: ${selectedCategory.id}`);
-      // Enviar el evento al servidor
+
       selectQuizType(roomCode, selectedCategory.id);
     }
   }, [roomCode, selectedCategoryIndex, selectQuizType]);
 
-  // Manejar la respuesta del servidor cuando se selecciona un tipo de quiz
   useEffect(() => {
     if (!socket) return;
 
@@ -42,14 +39,11 @@ const QuizMainSelection: React.FC = () => {
       console.log('Quiz type selected, navegando a categorías:', data);
 
       if (data.quizType && data.roomCode) {
-        // Navegar manualmente a la pantalla de categorías
         navigate(`/categories/${data.quizType}/${data.roomCode}`);
-        // Resetear flag después de navegar
         navigationInProgressRef.current = false;
       }
     };
 
-    // Escuchar eventos de navegación
     socket.on('quiz_type_selected', handleQuizTypeSelected);
 
     socket.on('goto_category_selection', (data) => {
@@ -146,6 +140,17 @@ const QuizMainSelection: React.FC = () => {
         <h1 className='main-title'>Choose Your Quiz Adventure</h1>
         <p className='main-subtitle'>Use the controller to select a category</p>
 
+        {/* Indicador visual para el controlador */}
+        <div className='controller-mode-indicator'>
+          <motion.div
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+          >
+            <span>🎮 Controller connected</span>
+            <p>Use the D-pad to navigate and OK to select</p>
+          </motion.div>
+        </div>
+
         <div className='main-categories-container'>
           {mainCategories.map((category, index) => (
             <motion.div
@@ -185,36 +190,6 @@ const QuizMainSelection: React.FC = () => {
           >
             Continue with {mainCategories[selectedCategoryIndex]?.name}
           </motion.button>
-        </div>
-
-        {/* Panel de depuración */}
-        <div
-          style={{
-            margin: '20px auto',
-            padding: '10px',
-            background: 'rgba(0,0,0,0.1)',
-            borderRadius: '5px',
-            maxWidth: '400px',
-          }}
-        >
-          <p>Seleccionado: {mainCategories[selectedCategoryIndex]?.name}</p>
-          <p>Índice: {selectedCategoryIndex}</p>
-          <p>
-            Navegación en progreso:{' '}
-            {navigationInProgressRef.current ? 'Sí' : 'No'}
-          </p>
-          <p>Room Code: {roomCode}</p>
-        </div>
-
-        {/* Indicador visual para el controlador */}
-        <div className='controller-mode-indicator'>
-          <motion.div
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-          >
-            <span>🎮 Controller connected</span>
-            <p>Use the D-pad to navigate and OK to select</p>
-          </motion.div>
         </div>
       </motion.div>
     </div>
